@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
-import { loginUser } from "@/services/api";
+import { loginUser } from "@/services/authService";
 
 type LoginFormData = {
   email: string;

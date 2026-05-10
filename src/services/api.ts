@@ -1,60 +1,102 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-// Structure des données envoyées lors de la connexion
-type LoginPayload = {
-  email: string;
-  password: string;
+import type { ApiResponse } from "@/types/api";
+
+// URL de base de l'API backend, centralisee pour tous les services.
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+type RequestConfig = Omit<RequestInit, "body" | "headers"> & {
+  body?: BodyInit | Record<string, unknown> | null;
+  headers?: HeadersInit;
+  requireAuth?: boolean;
 };
 
-// Structure des donnees envoyees lors de l'inscription
-type RegisterPayload = {
-  email: string;
-  password: string;
-};
-
-// Fonction utilisée pour connecter un utilisateur
-export async function loginUser(payload: LoginPayload) {
-  // Requête POST envoyée au backend
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    // Conversion des données du formulaire en JSON
-    body: JSON.stringify(payload),
-  });
-
-  // Récupération de la réponse du backend
-  const data = await response.json();
-
-  // Gestion des erreurs de connexion
-  if (!response.ok) {
-    throw new Error(data.message || "Erreur lors de la connexion.");
+// Recupere le token JWT stocke dans le navigateur.
+export function getToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
   }
 
-  // Retourne les données utilisateur et le token
-  return data;
+  return localStorage.getItem("token");
 }
 
-// Fonction utilisee pour inscrire un utilisateur
-export async function registerUser(payload: RegisterPayload) {
-  // Requete POST envoyee au backend
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    // Conversion des donnees du formulaire en JSON
-    body: JSON.stringify(payload),
-  });
+// Construit les headers communs et ajoute automatiquement le token si besoin.
+export function authHeaders(
+  headers: HeadersInit = {},
+  requireAuth = true
+): Headers {
+  const requestHeaders = new Headers(headers);
 
-  // Recuperation de la reponse du backend
-  const data = await response.json();
-
-  // Gestion des erreurs d'inscription
-  if (!response.ok) {
-    throw new Error(data.message || "Erreur lors de l'inscription.");
+  if (!requestHeaders.has("Content-Type")) {
+    requestHeaders.set("Content-Type", "application/json");
   }
 
-  // Retourne les donnees utilisateur creees
-  return data;
+  const token = getToken();
+
+  if (token) {
+    requestHeaders.set("Authorization", `Bearer ${token}`);
+  } else if (requireAuth) {
+    throw new Error("Vous devez etre connecte pour effectuer cette action.");
+  }
+
+  return requestHeaders;
+}
+
+// Uniformise la lecture des reponses JSON et texte du backend.
+async function parseResponse<T>(
+  response: Response
+): Promise<ApiResponse<T>> {
+  const contentType = response.headers.get("Content-Type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as ApiResponse<T>;
+  }
+
+  const text = await response.text();
+
+  return {
+    success: response.ok,
+    message: text || "Reponse inattendue du serveur.",
+    data: null as T,
+  };
+}
+
+// Fonction generique reutilisable par tous les services metier.
+export async function apiRequest<T>(
+  endpoint: string,
+  config: RequestConfig = {}
+): Promise<ApiResponse<T>> {
+  const {
+    body,
+    headers,
+    requireAuth = false,
+    ...requestInit
+  } = config;
+
+  const requestHeaders = authHeaders(headers, requireAuth);
+  const requestBody =
+    body && body instanceof FormData
+      ? body
+      : body && typeof body === "object"
+        ? JSON.stringify(body)
+        : body;
+
+  if (body instanceof FormData) {
+    requestHeaders.delete("Content-Type");
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...requestInit,
+    headers: requestHeaders,
+    body: requestBody,
+  });
+
+  const payload = await parseResponse<T>(response);
+
+  if (!response.ok) {
+    throw new Error(
+      payload.message || "Une erreur est survenue lors de la requete API."
+    );
+  }
+
+  return payload;
 }
