@@ -5,6 +5,12 @@ type LoginPayload = {
   password: string;
 };
 
+// Structure des donnees envoyees lors de l'inscription
+type RegisterPayload = {
+  email: string;
+  password: string;
+};
+
 // Fonction utilisée pour connecter un utilisateur
 export async function loginUser(payload: LoginPayload) {
   // Requête POST envoyée au backend
@@ -29,4 +35,26 @@ export async function loginUser(payload: LoginPayload) {
   return data;
 }
 
-export { API_URL };
+// Fonction utilisee pour inscrire un utilisateur
+export async function registerUser(payload: RegisterPayload) {
+  // Requete POST envoyee au backend
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    // Conversion des donnees du formulaire en JSON
+    body: JSON.stringify(payload),
+  });
+
+  // Recuperation de la reponse du backend
+  const data = await response.json();
+
+  // Gestion des erreurs d'inscription
+  if (!response.ok) {
+    throw new Error(data.message || "Erreur lors de l'inscription.");
+  }
+
+  // Retourne les donnees utilisateur creees
+  return data;
+}
