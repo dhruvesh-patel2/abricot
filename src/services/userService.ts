@@ -1,18 +1,18 @@
 import { apiRequest } from "@/services/api";
 import type {
   ApiResponse,
-  User,
+  SearchUsersData,
 } from "@/types/api";
 
 // Recherche des utilisateurs par texte pour l'ajout de collaborateurs.
 export function searchUsers(
   query: string
-): Promise<ApiResponse<User[]>> {
+): Promise<ApiResponse<SearchUsersData>> {
   const searchParams = new URLSearchParams({
     query,
   });
 
-  return apiRequest<User[]>(
+  return apiRequest<SearchUsersData>(
     `/users/search?${searchParams.toString()}`,
     {
       method: "GET",

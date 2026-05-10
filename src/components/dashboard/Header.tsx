@@ -9,9 +9,13 @@ import type { User } from "@/types/api";
 
 type HeaderProps = {
   user?: User | null;
+  activePage?: "dashboard" | "projects";
 };
 
-export default function Header({ user }: HeaderProps) {
+export default function Header({
+  user,
+  activePage = "dashboard",
+}: HeaderProps) {
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -40,8 +44,14 @@ export default function Header({ user }: HeaderProps) {
             <li>
               <Link
                 href="/dashboard"
-                aria-current="page"
-                className="flex items-center gap-4 rounded-2xl bg-[#111111] px-11 py-7 text-lg text-white"
+                aria-current={
+                  activePage === "dashboard" ? "page" : undefined
+                }
+                className={`flex items-center gap-4 rounded-2xl px-11 py-7 text-lg ${
+                  activePage === "dashboard"
+                    ? "bg-[#111111] text-white"
+                    : "text-[#d85d0a]"
+                }`}
               >
                 <DashboardIcon />
                 <span>Tableau de bord</span>
@@ -50,7 +60,14 @@ export default function Header({ user }: HeaderProps) {
             <li>
               <Link
                 href="/projects"
-                className="flex items-center gap-4 px-2 py-4 text-lg text-[#d85d0a]"
+                aria-current={
+                  activePage === "projects" ? "page" : undefined
+                }
+                className={`flex items-center gap-4 rounded-2xl px-11 py-7 text-lg ${
+                  activePage === "projects"
+                    ? "bg-[#111111] text-white"
+                    : "px-2 py-4 text-[#d85d0a]"
+                }`}
               >
                 <FolderIcon />
                 <span>Projets</span>

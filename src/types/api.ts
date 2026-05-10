@@ -70,4 +70,9 @@ export type AuthData = {
   token: string;
 };
 
+// Structure retournee par l'autocomplete de recherche utilisateurs.
+export type SearchUsersData = {
+  users: User[];
+};
+
 export type AuthResponse = ApiResponse<AuthData>;

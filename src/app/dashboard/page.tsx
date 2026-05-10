@@ -98,7 +98,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-[#222222]">
-      <Header user={profile} />
+      <Header user={profile} activePage="dashboard" />
 
       <div className="mx-auto max-w-[1440px] px-6 pb-8 pt-10 sm:px-8 lg:px-10 lg:pt-20">
         <section className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
