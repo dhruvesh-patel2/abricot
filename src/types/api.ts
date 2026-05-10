@@ -14,11 +14,17 @@ export type User = {
   updatedAt: string;
 };
 
-// Membre rattache a un projet.
+// Membre rattache a un projet avec son role.
 export type ProjectMember = {
-  id: string;
-  email: string;
-  name: string;
+  id?: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+  };
 };
 
 // Utilisateur assigne a une tache.

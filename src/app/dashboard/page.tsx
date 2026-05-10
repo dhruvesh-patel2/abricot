@@ -9,6 +9,7 @@ import DashboardTabs, {
 } from "@/components/dashboard/DashboardTabs";
 import KanbanView from "@/components/dashboard/KanbanView";
 import ListView from "@/components/dashboard/ListView";
+import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import { getProfile } from "@/services/authService";
 import {
   getAssignedTasks,
@@ -61,6 +62,8 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] =
+    useState(false);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -114,6 +117,7 @@ export default function DashboardPage() {
 
           <button
             type="button"
+            onClick={() => setIsCreateProjectModalOpen(true)}
             className="inline-flex h-[50px] w-full min-w-fit items-center justify-center whitespace-nowrap rounded-xl bg-[#262323] px-8 text-[18px] text-white sm:w-[182px]"
           >
             + Créer un projet
@@ -140,6 +144,14 @@ export default function DashboardPage() {
           />
         )}
       </div>
+
+      <CreateProjectModal
+        isOpen={isCreateProjectModalOpen}
+        onClose={() => setIsCreateProjectModalOpen(false)}
+        onCreated={(project) =>
+          setProjects((currentProjects) => [project, ...currentProjects])
+        }
+      />
 
       <DashboardFooter />
     </main>

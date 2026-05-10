@@ -127,3 +127,117 @@ export function CommentBubbleIcon() {
     </svg>
   );
 }
+
+export function ArrowLeftIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5 stroke-current"
+      fill="none"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </svg>
+  );
+}
+
+export function ChevronDownIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5 stroke-current"
+      fill="none"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export function MoreHorizontalIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5 fill-current"
+    >
+      <circle cx="5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="19" cy="12" r="1.8" />
+    </svg>
+  );
+}
+
+export function CloseIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5 stroke-current"
+      fill="none"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 6 12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  );
+}
+
+export function SparklesIcon({ className = "" }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className={`h-5 w-5 fill-current ${className}`}
+    >
+      <path d="m12 2 1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2Z" />
+      <path d="m19 14 .9 2.6L22.5 18l-2.6.9L19 21.5l-.9-2.6-2.6-.9 2.6-.9L19 14Z" />
+      <path d="m5 14 .9 2.1L8 17l-2.1.9L5 20l-.9-2.1L2 17l2.1-.9L5 14Z" />
+    </svg>
+  );
+}
+
+export function TrashIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4 fill-current"
+    >
+      <path d="M9 3.5h6l.5 2H20v2H4v-2h4.5l.5-2Zm-1 6h2v8H8v-8Zm6 0h2v8h-2v-8ZM6 7.5h12V18A2.5 2.5 0 0 1 15.5 20.5h-7A2.5 2.5 0 0 1 6 18V7.5Z" />
+    </svg>
+  );
+}
+
+export function EditIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4 fill-current"
+    >
+      <path d="m16.86 3.49 3.65 3.65a1.2 1.2 0 0 1 0 1.7l-9.9 9.9-4.64.99.99-4.64 9.9-9.9a1.2 1.2 0 0 1 1.7 0ZM6.94 14.95l2.11 2.11" />
+    </svg>
+  );
+}
+
+export function SendIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4 fill-current"
+    >
+      <path d="M4 11.5 19.8 4a.7.7 0 0 1 .96.83l-2.88 12.1a.7.7 0 0 1-1.1.4l-4.2-3.05-2.9 2.9a.7.7 0 0 1-1.2-.5v-3.42L4.23 12.6A.7.7 0 0 1 4 11.5Z" />
+    </svg>
+  );
+}

@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import DashboardFooter from "@/components/dashboard/Footer";
 import Header from "@/components/dashboard/Header";
+import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import { getProfile } from "@/services/authService";
 import {
   getProjectTasks,
@@ -11,6 +13,7 @@ import {
 } from "@/services/projectService";
 import type {
   Project,
+  ProjectMember,
   Task,
   User,
 } from "@/types/api";
@@ -77,11 +80,25 @@ function getInitials(value?: string) {
     .toUpperCase();
 }
 
+function getProjectMembers(project: Project): ProjectMember[] {
+  return project.members ?? [];
+}
+
+function getMemberIdentity(member: ProjectMember) {
+  return {
+    id: member.user?.id ?? member.id ?? member.email ?? member.name ?? "member",
+    name: member.user?.name ?? member.name ?? "",
+    email: member.user?.email ?? member.email ?? "",
+  };
+}
+
 export default function ProjectsPage() {
   const [profile, setProfile] = useState<User | null>(null);
   const [projects, setProjects] = useState<ProjectWithTasks[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] =
+    useState(false);
 
   useEffect(() => {
     async function loadProjectsPage() {
@@ -149,6 +166,7 @@ export default function ProjectsPage() {
 
           <button
             type="button"
+            onClick={() => setIsCreateProjectModalOpen(true)}
             className="inline-flex h-[50px] w-full min-w-fit items-center justify-center whitespace-nowrap rounded-xl bg-[#262323] px-8 text-[18px] text-white sm:w-[182px]"
           >
             + Créer un projet
@@ -183,12 +201,13 @@ export default function ProjectsPage() {
                 totalTasks === 0
                   ? 0
                   : Math.round((completedTasks / totalTasks) * 100);
-              const members = project.members ?? [];
+              const members = getProjectMembers(project);
 
               return (
-                <article
+                <Link
                   key={project.id}
-                  className="min-h-[350px] rounded-[16px] border border-[#dde3ed] bg-white p-8"
+                  href={`/projects/${project.id}`}
+                  className="block min-h-[350px] rounded-[16px] border border-[#dde3ed] bg-white p-8 transition hover:border-[#d8cfc6]"
                 >
                   <h2 className="text-[20px] font-medium text-[#222222]">
                     {project.name}
@@ -234,20 +253,34 @@ export default function ProjectsPage() {
 
                       {members.slice(0, 2).map((member) => (
                         <span
-                          key={member.id}
+                          key={getMemberIdentity(member).id}
                           className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-[#e9edf3] px-2 text-[12px] text-[#222222]"
                         >
-                          {getInitials(member.name || member.email)}
+                          {getInitials(getMemberIdentity(member).name || getMemberIdentity(member).email)}
                         </span>
                       ))}
                     </div>
                   </div>
-                </article>
+                </Link>
               );
             })}
           </section>
         )}
       </div>
+
+      <CreateProjectModal
+        isOpen={isCreateProjectModalOpen}
+        onClose={() => setIsCreateProjectModalOpen(false)}
+        onCreated={(project) =>
+          setProjects((currentProjects) => [
+            {
+              ...project,
+              tasks: [],
+            },
+            ...currentProjects,
+          ])
+        }
+      />
 
       <DashboardFooter />
     </main>
