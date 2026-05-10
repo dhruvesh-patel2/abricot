@@ -5,8 +5,22 @@ import {
   DashboardIcon,
   FolderIcon,
 } from "@/components/dashboard/icons";
+import type { User } from "@/types/api";
 
-export default function Header() {
+type HeaderProps = {
+  user?: User | null;
+};
+
+export default function Header({ user }: HeaderProps) {
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "AD";
+
   return (
     <header className="border-b border-[#f0f0f0] bg-white">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-6 py-4 sm:px-8 lg:px-10">
@@ -46,7 +60,7 @@ export default function Header() {
         </nav>
 
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#fde8db] text-xl font-normal">
-          AD
+          {initials}
         </div>
       </div>
     </header>
