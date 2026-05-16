@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { useState } from "react";
+
 import EmptyStateCard from "@/components/dashboard/EmptyStateCard";
 import {
   CommentBubbleIcon,
@@ -15,6 +18,14 @@ type KanbanColumnProps = {
   isLoading: boolean;
   statusLabel: string;
   statusClassName: string;
+  dropValue: string;
+  draggedTaskId: string | null;
+  activeDropValue: string | null;
+  onDropTask: (status: string) => void;
+  onDragOverColumn: (status: string) => void;
+  onDragLeaveColumn: (status: string) => void;
+  onDragStartTask: (task: Task) => void;
+  onDragEndTask: () => void;
 };
 
 function KanbanColumn({
@@ -23,9 +34,34 @@ function KanbanColumn({
   isLoading,
   statusLabel,
   statusClassName,
+  dropValue,
+  draggedTaskId,
+  activeDropValue,
+  onDropTask,
+  onDragOverColumn,
+  onDragLeaveColumn,
+  onDragStartTask,
+  onDragEndTask,
 }: KanbanColumnProps) {
+  const isActiveDropZone = activeDropValue === dropValue;
+
   return (
-    <div className="rounded-[16px] border border-[#ffdede] bg-white px-4 py-5">
+    <div
+      onDragOver={(event) => {
+        event.preventDefault();
+        onDragOverColumn(dropValue);
+      }}
+      onDragLeave={() => onDragLeaveColumn(dropValue)}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDropTask(dropValue);
+      }}
+      className={`rounded-[16px] border bg-white px-4 py-5 transition ${
+        isActiveDropZone
+          ? "border-[#f0670f] bg-[#fff7f1]"
+          : "border-[#ffdede]"
+      }`}
+    >
       <div className="flex items-center gap-2.5">
         <h2 className="text-[17px] font-medium text-[#222222]">{title}</h2>
         <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-[#e9edf3] px-2.5 text-[13px] text-[#778196]">
@@ -47,53 +83,80 @@ function KanbanColumn({
             compact
           />
         ) : (
-          tasks.map((task) => (
-            <article
-              key={task.id}
-              className="rounded-[14px] border border-[#dde3ed] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.02)]"
-            >
-              <div className="flex items-start justify-between gap-2.5">
-                <div>
-                  <h3 className="text-[15px] font-semibold leading-5 text-[#222222]">
-                    {task.title}
-                  </h3>
-                  <p className="mt-1.5 text-[13px] leading-6 text-[#778196]">
-                    {task.description || "Aucune description disponible."}
-                  </p>
+          tasks.map((task) => {
+            const projectHref = task.projectId
+              ? `/projects/${task.projectId}`
+              : null;
+
+            return (
+              <article
+                key={task.id}
+                draggable={Boolean(task.projectId)}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", task.id);
+                  onDragStartTask(task);
+                }}
+                onDragEnd={onDragEndTask}
+                className={`rounded-[14px] border border-[#dde3ed] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.02)] transition ${
+                  draggedTaskId === task.id
+                    ? "opacity-60"
+                    : "opacity-100"
+                } ${task.projectId ? "cursor-grab active:cursor-grabbing" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-2.5">
+                  <div>
+                    <h3 className="text-[15px] font-semibold leading-5 text-[#222222]">
+                      {task.title}
+                    </h3>
+                    <p className="mt-1.5 text-[13px] leading-6 text-[#778196]">
+                      {task.description || "Aucune description disponible."}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`inline-flex min-w-fit whitespace-nowrap items-center justify-center rounded-[10px] px-3 py-1 text-[11px] leading-none ${statusClassName}`}
+                  >
+                    {statusLabel}
+                  </span>
                 </div>
 
-                <span
-                  className={`inline-flex min-w-fit whitespace-nowrap items-center justify-center rounded-[10px] px-3 py-1 text-[11px] leading-none ${statusClassName}`}
-                >
-                  {statusLabel}
-                </span>
-              </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-[#8a94a6]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <TaskFolderIcon />
+                    <span>Nom du projet</span>
+                  </span>
+                  <span className="text-[#c8ced8]">|</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <TaskCalendarIcon />
+                    <span>9 mars</span>
+                  </span>
+                  <span className="text-[#c8ced8]">|</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <CommentBubbleIcon />
+                    <span>{task.comments?.length ?? 2}</span>
+                  </span>
+                </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-[#8a94a6]">
-                <span className="inline-flex items-center gap-1.5">
-                  <TaskFolderIcon />
-                  <span>Nom du projet</span>
-                </span>
-                <span className="text-[#c8ced8]">|</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <TaskCalendarIcon />
-                  <span>9 mars</span>
-                </span>
-                <span className="text-[#c8ced8]">|</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <CommentBubbleIcon />
-                  <span>{task.comments?.length ?? 2}</span>
-                </span>
-              </div>
-
-              <button
-                type="button"
-                className="mt-4 inline-flex h-[40px] w-[92px] items-center justify-center rounded-[12px] bg-[#262323] text-[14px] text-white"
-              >
-                Voir
-              </button>
-            </article>
-          ))
+                {projectHref ? (
+                  <Link
+                    href={projectHref}
+                    className="mt-4 inline-flex h-[40px] w-[92px] items-center justify-center rounded-[12px] bg-[#262323] text-[14px] text-white"
+                  >
+                    Voir
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-4 inline-flex h-[40px] w-[92px] items-center justify-center rounded-[12px] bg-[#262323] text-[14px] text-white opacity-50"
+                  >
+                    Voir
+                  </button>
+                )}
+              </article>
+            );
+          })
         )}
       </div>
     </div>
@@ -103,6 +166,7 @@ function KanbanColumn({
 type KanbanViewProps = {
   projects: Project[];
   isLoading: boolean;
+  onTaskStatusChange: (task: Task, nextStatus: string) => Promise<void>;
 };
 
 function normalizeStatus(status?: string) {
@@ -111,10 +175,38 @@ function normalizeStatus(status?: string) {
     .toLowerCase();
 }
 
+function getColumnStatusValue(status?: string) {
+  const value = normalizeStatus(status);
+
+  if (
+    value === "en cours" ||
+    value === "en_cours" ||
+    value === "in progress" ||
+    value === "in_progress"
+  ) {
+    return "IN_PROGRESS";
+  }
+
+  if (
+    value === "terminee" ||
+    value === "termine" ||
+    value === "done" ||
+    value === "completed"
+  ) {
+    return "DONE";
+  }
+
+  return "TODO";
+}
+
 export default function KanbanView({
   projects,
   isLoading,
+  onTaskStatusChange,
 }: KanbanViewProps) {
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [activeDropValue, setActiveDropValue] = useState<string | null>(null);
+
   // On rassemble d'abord toutes les taches des projets.
   const allTasks = projects.flatMap((project) => project.tasks ?? []);
 
@@ -147,6 +239,23 @@ export default function KanbanView({
     );
   });
 
+  async function handleDropTask(nextStatus: string) {
+    if (!draggedTask) {
+      return;
+    }
+
+    setActiveDropValue(null);
+
+    if (getColumnStatusValue(draggedTask.status) === nextStatus) {
+      setDraggedTask(null);
+      return;
+    }
+
+    const taskToMove = draggedTask;
+    setDraggedTask(null);
+    await onTaskStatusChange(taskToMove, nextStatus);
+  }
+
   return (
     <section className="mt-8 grid gap-4 xl:grid-cols-3">
       <KanbanColumn
@@ -155,6 +264,21 @@ export default function KanbanView({
         isLoading={isLoading}
         statusLabel="À faire"
         statusClassName="bg-[#ffe1e1] text-[#ff5a5a]"
+        dropValue="TODO"
+        draggedTaskId={draggedTask?.id ?? null}
+        activeDropValue={activeDropValue}
+        onDropTask={handleDropTask}
+        onDragOverColumn={setActiveDropValue}
+        onDragLeaveColumn={(status) => {
+          if (activeDropValue === status) {
+            setActiveDropValue(null);
+          }
+        }}
+        onDragStartTask={setDraggedTask}
+        onDragEndTask={() => {
+          setDraggedTask(null);
+          setActiveDropValue(null);
+        }}
       />
       <KanbanColumn
         title="En cours"
@@ -162,6 +286,21 @@ export default function KanbanView({
         isLoading={isLoading}
         statusLabel="En cours"
         statusClassName="bg-[#fff1dd] text-[#f39c12]"
+        dropValue="IN_PROGRESS"
+        draggedTaskId={draggedTask?.id ?? null}
+        activeDropValue={activeDropValue}
+        onDropTask={handleDropTask}
+        onDragOverColumn={setActiveDropValue}
+        onDragLeaveColumn={(status) => {
+          if (activeDropValue === status) {
+            setActiveDropValue(null);
+          }
+        }}
+        onDragStartTask={setDraggedTask}
+        onDragEndTask={() => {
+          setDraggedTask(null);
+          setActiveDropValue(null);
+        }}
       />
       <KanbanColumn
         title="Terminées"
@@ -169,6 +308,21 @@ export default function KanbanView({
         isLoading={isLoading}
         statusLabel="Terminée"
         statusClassName="bg-[#e5fbef] text-[#2bb673]"
+        dropValue="DONE"
+        draggedTaskId={draggedTask?.id ?? null}
+        activeDropValue={activeDropValue}
+        onDropTask={handleDropTask}
+        onDragOverColumn={setActiveDropValue}
+        onDragLeaveColumn={(status) => {
+          if (activeDropValue === status) {
+            setActiveDropValue(null);
+          }
+        }}
+        onDragStartTask={setDraggedTask}
+        onDragEndTask={() => {
+          setDraggedTask(null);
+          setActiveDropValue(null);
+        }}
       />
     </section>
   );

@@ -1,7 +1,9 @@
+import Link from "next/link";
+
 import EmptyStateCard from "@/components/dashboard/EmptyStateCard";
+import TaskSearchBar from "@/components/dashboard/TaskSearchBar";
 import {
   CommentBubbleIcon,
-  SearchIcon,
   TaskCalendarIcon,
   TaskFolderIcon,
 } from "@/components/dashboard/icons";
@@ -10,6 +12,9 @@ import type { Task } from "@/types/api";
 type ListViewProps = {
   tasks: Task[];
   isLoading: boolean;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  deferredSearchQuery: string;
 };
 
 function formatStatus(status?: string) {
@@ -35,7 +40,30 @@ function formatStatus(status?: string) {
 export default function ListView({
   tasks,
   isLoading,
+  searchQuery,
+  onSearchQueryChange,
+  deferredSearchQuery,
 }: ListViewProps) {
+  const normalizedSearchQuery = deferredSearchQuery
+    .trim()
+    .toLowerCase();
+
+  const filteredTasks = tasks.filter((task) => {
+    if (!normalizedSearchQuery) {
+      return true;
+    }
+
+    const searchableContent = [
+      task.title,
+      task.description,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableContent.includes(normalizedSearchQuery);
+  });
+
   return (
     <section className="mt-8 rounded-[16px] border border-[#dde3ed] bg-white px-4 py-6 sm:px-8 sm:py-10 lg:px-[58px] lg:py-10">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -48,10 +76,10 @@ export default function ListView({
           </p>
         </div>
 
-        <label className="flex h-[62px] w-full max-w-[356px] items-center justify-between rounded-xl border border-[#d8deea] bg-white px-8 text-[#778196]">
-          <span className="text-[15px]">Rechercher une tâche</span>
-          <SearchIcon />
-        </label>
+        <TaskSearchBar
+          value={searchQuery}
+          onChange={onSearchQueryChange}
+        />
       </div>
 
       <div className="mt-10 space-y-5">
@@ -65,58 +93,76 @@ export default function ListView({
             title="Aucune tache assignee"
             description="Aucune tache n'a ete retournee par le backend pour le moment."
           />
+        ) : filteredTasks.length === 0 ? (
+          <EmptyStateCard
+            title="Aucun resultat"
+            description="Aucune tache ne correspond a votre recherche."
+          />
         ) : (
-          tasks.map((task) => {
+          filteredTasks.map((task) => {
             const status = formatStatus(task.status);
+            const projectHref = task.projectId
+              ? `/projects/${task.projectId}`
+              : null;
 
             return (
-            <article
-              key={task.id}
-              className="rounded-[14px] border border-[#dde3ed] bg-white px-6 py-6 shadow-[0_1px_2px_rgba(15,23,42,0.02)]"
-            >
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <h3 className="text-[18px] font-semibold text-[#222222]">
-                    {task.title}
-                  </h3>
-                  <p className="mt-2 text-[15px] text-[#778196]">
-                    {task.description || "Aucune description disponible."}
-                  </p>
+              <article
+                key={task.id}
+                className="rounded-[14px] border border-[#dde3ed] bg-white px-6 py-6 shadow-[0_1px_2px_rgba(15,23,42,0.02)]"
+              >
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h3 className="text-[18px] font-semibold text-[#222222]">
+                      {task.title}
+                    </h3>
+                    <p className="mt-2 text-[15px] text-[#778196]">
+                      {task.description || "Aucune description disponible."}
+                    </p>
 
-                  <div className="mt-8 flex flex-wrap items-center gap-3 text-[15px] text-[#8a94a6]">
-                    <span className="inline-flex items-center gap-2">
-                      <TaskFolderIcon />
-                      <span>Nom du projet</span>
+                    <div className="mt-8 flex flex-wrap items-center gap-3 text-[15px] text-[#8a94a6]">
+                      <span className="inline-flex items-center gap-2">
+                        <TaskFolderIcon />
+                        <span>Nom du projet</span>
+                      </span>
+                      <span className="text-[#c8ced8]">|</span>
+                      <span className="inline-flex items-center gap-2">
+                        <TaskCalendarIcon />
+                        <span>9 mars</span>
+                      </span>
+                      <span className="text-[#c8ced8]">|</span>
+                      <span className="inline-flex items-center gap-2">
+                        <CommentBubbleIcon />
+                        <span>{task.comments?.length ?? 2}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex min-w-[120px] flex-col items-start gap-9 lg:items-end">
+                    <span
+                      className={`inline-flex rounded-full px-4 py-2 text-sm ${status.className}`}
+                    >
+                      {status.label}
                     </span>
-                    <span className="text-[#c8ced8]">|</span>
-                    <span className="inline-flex items-center gap-2">
-                      <TaskCalendarIcon />
-                      <span>9 mars</span>
-                    </span>
-                    <span className="text-[#c8ced8]">|</span>
-                    <span className="inline-flex items-center gap-2">
-                      <CommentBubbleIcon />
-                      <span>{task.comments?.length ?? 2}</span>
-                    </span>
+
+                    {projectHref ? (
+                      <Link
+                        href={projectHref}
+                        className="inline-flex h-[48px] w-[122px] items-center justify-center rounded-[12px] bg-[#262323] text-[18px] text-white"
+                      >
+                        Voir
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex h-[48px] w-[122px] items-center justify-center rounded-[12px] bg-[#262323] text-[18px] text-white opacity-50"
+                      >
+                        Voir
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                <div className="flex min-w-[120px] flex-col items-start gap-9 lg:items-end">
-                  <span
-                    className={`inline-flex rounded-full px-4 py-2 text-sm ${status.className}`}
-                  >
-                    {status.label}
-                  </span>
-
-                  <button
-                    type="button"
-                    className="inline-flex h-[48px] w-[122px] items-center justify-center rounded-[12px] bg-[#262323] text-[18px] text-white"
-                  >
-                    Voir
-                  </button>
-                </div>
-              </div>
-            </article>
+              </article>
             );
           })
         )}

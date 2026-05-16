@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 
 import DashboardFooter from "@/components/dashboard/Footer";
 import Header from "@/components/dashboard/Header";
@@ -15,6 +15,7 @@ import {
   getAssignedTasks,
   getProjectsWithTasks,
 } from "@/services/dashboardService";
+import { updateProjectTask } from "@/services/projectService";
 import type {
   Project,
   Task,
@@ -55,15 +56,48 @@ function extractProjects(data: unknown): Project[] {
   return [];
 }
 
+function attachProjectIdsToTasks(projects: Project[]): Project[] {
+  return projects.map((project) => ({
+    ...project,
+    tasks: (project.tasks ?? []).map((task) => ({
+      ...task,
+      projectId: task.projectId ?? project.id,
+    })),
+  }));
+}
+
+function updateTaskInProjects(
+  projects: Project[],
+  taskId: string,
+  updater: (task: Task) => Task
+): Project[] {
+  return projects.map((project) => ({
+    ...project,
+    tasks: (project.tasks ?? []).map((task) =>
+      task.id === taskId ? updater(task) : task
+    ),
+  }));
+}
+
+function updateTaskInList(
+  tasks: Task[],
+  taskId: string,
+  updater: (task: Task) => Task
+): Task[] {
+  return tasks.map((task) => (task.id === taskId ? updater(task) : task));
+}
+
 export default function DashboardPage() {
   const [view, setView] = useState<DashboardView>("list");
   const [profile, setProfile] = useState<User | null>(null);
   const [assignedTasks, setAssignedTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] =
     useState(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -84,7 +118,9 @@ export default function DashboardPage() {
 
         setProfile(profileResponse.data);
         setAssignedTasks(extractTasks(assignedTasksResponse.data));
-        setProjects(extractProjects(projectsResponse.data));
+        setProjects(
+          attachProjectIdsToTasks(extractProjects(projectsResponse.data))
+        );
       } catch (error) {
         setError(
           error instanceof Error
@@ -98,6 +134,61 @@ export default function DashboardPage() {
 
     void loadDashboardData();
   }, []);
+
+  async function handleTaskStatusChange(
+    task: Task,
+    nextStatus: string
+  ) {
+    if (!task.projectId || task.status === nextStatus) {
+      return;
+    }
+
+    const previousProjects = projects;
+    const previousAssignedTasks = assignedTasks;
+
+    setError("");
+    setProjects((currentProjects) =>
+      updateTaskInProjects(currentProjects, task.id, (currentTask) => ({
+        ...currentTask,
+        status: nextStatus,
+      }))
+    );
+    setAssignedTasks((currentTasks) =>
+      updateTaskInList(currentTasks, task.id, (currentTask) => ({
+        ...currentTask,
+        status: nextStatus,
+      }))
+    );
+
+    try {
+      const response = await updateProjectTask(task.projectId, task.id, {
+        status: nextStatus,
+      });
+
+      const updatedTask = {
+        ...response.data,
+        projectId: response.data.projectId ?? task.projectId,
+      };
+
+      setProjects((currentProjects) =>
+        updateTaskInProjects(currentProjects, task.id, () => updatedTask)
+      );
+      setAssignedTasks((currentTasks) =>
+        updateTaskInList(currentTasks, task.id, (currentTask) => ({
+          ...currentTask,
+          ...updatedTask,
+        }))
+      );
+    } catch (error) {
+      setProjects(previousProjects);
+      setAssignedTasks(previousAssignedTasks);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "La mise a jour du statut de la tache a echoue."
+      );
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-[#222222]">
@@ -136,11 +227,15 @@ export default function DashboardPage() {
           <ListView
             tasks={assignedTasks}
             isLoading={isLoading}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            deferredSearchQuery={deferredSearchQuery}
           />
         ) : (
           <KanbanView
             projects={projects}
             isLoading={isLoading}
+            onTaskStatusChange={handleTaskStatusChange}
           />
         )}
       </div>
