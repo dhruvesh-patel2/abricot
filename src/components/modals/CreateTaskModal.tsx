@@ -8,11 +8,17 @@ import {
   ChevronDownIcon,
 } from "@/components/dashboard/icons";
 import BaseModal from "@/components/modals/BaseModal";
+import {
+  buildSelectedAssignees,
+  getMemberIdentity,
+  taskStatusOptions,
+  type TaskStatus,
+} from "@/components/modals/taskModalUtils";
 import { createProjectTask } from "@/services/projectService";
 import type {
   ProjectMember,
   Task,
-  TaskAssignee,
+  User,
 } from "@/types/api";
 
 type CreateTaskModalProps = {
@@ -20,10 +26,9 @@ type CreateTaskModalProps = {
   onClose: () => void;
   projectId: string;
   members: ProjectMember[];
+  currentUser?: User | null;
   onCreated?: (task: Task) => void;
 };
-
-type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 
 type FormState = {
   title: string;
@@ -32,41 +37,12 @@ type FormState = {
   status: TaskStatus;
 };
 
-function getMemberIdentity(member: ProjectMember) {
-  return {
-    id: member.user?.id ?? member.id ?? member.email ?? member.name ?? "member",
-    name: member.user?.name ?? member.name ?? "",
-    email: member.user?.email ?? member.email ?? "",
-  };
-}
-
-const statusOptions: Array<{
-  value: TaskStatus;
-  label: string;
-  className: string;
-}> = [
-  {
-    value: "TODO",
-    label: "À faire",
-    className: "bg-[#ffe1e1] text-[#ff5a5a]",
-  },
-  {
-    value: "IN_PROGRESS",
-    label: "En cours",
-    className: "bg-[#fff1dd] text-[#f39c12]",
-  },
-  {
-    value: "DONE",
-    label: "Terminée",
-    className: "bg-[#e5fbef] text-[#2bb673]",
-  },
-];
-
 export default function CreateTaskModal({
   isOpen,
   onClose,
   projectId,
   members,
+  currentUser,
   onCreated,
 }: CreateTaskModalProps) {
   const [formState, setFormState] = useState<FormState>({
@@ -112,22 +88,30 @@ export default function CreateTaskModal({
     setIsLoading(true);
 
     try {
+      const fallbackAssigneeIds =
+        selectedMemberIds.length > 0
+          ? selectedMemberIds
+          : members
+              .map(getMemberIdentity)
+              .filter(
+                (member) =>
+                  member.id === currentUser?.id ||
+                  member.email === currentUser?.email
+              )
+              .map((member) => member.id);
+
       const response = await createProjectTask(projectId, {
         title: formState.title.trim(),
         description: formState.description.trim(),
         dueDate: formState.dueDate,
-        assigneeIds: selectedMemberIds,
+        assigneeIds: fallbackAssigneeIds,
         status: formState.status,
       });
 
-      const selectedAssignees: TaskAssignee[] = members
-        .map(getMemberIdentity)
-        .filter((member) => selectedMemberIds.includes(member.id))
-        .map((member) => ({
-          id: member.id,
-          name: member.name,
-          email: member.email,
-        }));
+      const selectedAssignees = buildSelectedAssignees(
+        members,
+        fallbackAssigneeIds
+      );
 
       onCreated?.({
         ...response.data,
@@ -270,7 +254,7 @@ export default function CreateTaskModal({
         <div className="space-y-3">
           <label className="block text-[16px] text-[#222222]">Statut :</label>
           <div className="flex flex-wrap gap-3">
-            {statusOptions.map((statusOption) => (
+            {taskStatusOptions.map((statusOption) => (
               <button
                 key={statusOption.value}
                 type="button"

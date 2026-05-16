@@ -1,18 +1,31 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ChevronDownIcon, SearchIcon } from "@/components/dashboard/icons";
 import BaseModal from "@/components/modals/BaseModal";
-import { createProject } from "@/services/projectService";
+import DeleteProjectConfirmModal from "@/components/modals/DeleteProjectConfirmModal";
+import {
+  createProject,
+  deleteProject,
+  updateProject,
+} from "@/services/projectService";
 import { searchUsers } from "@/services/userService";
-import type { Project, User } from "@/types/api";
+import type {
+  Project,
+  ProjectMember,
+  User,
+} from "@/types/api";
 
 type CreateProjectModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onCreated?: (project: Project) => void;
+  projectToEdit?: Project | null;
+  onUpdated?: (project: Project) => void;
+  onDeleted?: (projectId: string) => void;
 };
 
 type FormState = {
@@ -20,38 +33,71 @@ type FormState = {
   description: string;
 };
 
+function getInitialFormState(projectToEdit?: Project | null): FormState {
+  return {
+    title: projectToEdit?.name ?? "",
+    description: projectToEdit?.description ?? "",
+  };
+}
+
+function mapMemberToUser(member: ProjectMember): User | null {
+  const id = member.user?.id ?? member.id;
+  const email = member.user?.email ?? member.email;
+  const name = member.user?.name ?? member.name;
+
+  if (!id || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    name: name ?? email,
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+function getInitialSelectedUsers(projectToEdit?: Project | null): User[] {
+  return (projectToEdit?.members ?? [])
+    .map(mapMemberToUser)
+    .filter((user): user is User => user !== null);
+}
+
 export default function CreateProjectModal({
   isOpen,
   onClose,
   onCreated,
+  projectToEdit,
+  onUpdated,
+  onDeleted,
 }: CreateProjectModalProps) {
-  const [formState, setFormState] = useState<FormState>({
-    title: "",
-    description: "",
-  });
+  const [formState, setFormState] = useState<FormState>(
+    getInitialFormState(projectToEdit)
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [isContributorPickerOpen, setIsContributorPickerOpen] =
     useState(false);
   const [results, setResults] = useState<User[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>(
+    getInitialSelectedUsers(projectToEdit)
+  );
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-
-  function resetModalState() {
-    setFormState({
-      title: "",
-      description: "",
-    });
-    setSearchQuery("");
-    setResults([]);
-    setSelectedUsers([]);
-    setError("");
-    setIsContributorPickerOpen(false);
-  }
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const isEditMode = Boolean(projectToEdit);
+  const router = useRouter();
 
   function handleClose() {
-    resetModalState();
+    if (isDeleting) {
+      return;
+    }
+
+    setIsDeleteModalOpen(false);
+    setDeleteError("");
     onClose();
   }
 
@@ -98,19 +144,31 @@ export default function CreateProjectModal({
     setIsLoading(true);
 
     try {
-      const response = await createProject({
+      const payload = {
         name: formState.title.trim(),
         description: formState.description.trim(),
         contributors: selectedUsers.map((user) => user.email),
-      });
+      };
 
-      onCreated?.(response.data);
+      const response =
+        isEditMode && projectToEdit
+          ? await updateProject(projectToEdit.id, payload)
+          : await createProject(payload);
+
+      if (isEditMode) {
+        onUpdated?.(response.data);
+      } else {
+        onCreated?.(response.data);
+      }
+
       handleClose();
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
-          : "Une erreur est survenue lors de la creation du projet."
+          : isEditMode
+            ? "Une erreur est survenue lors de la modification du projet."
+            : "Une erreur est survenue lors de la creation du projet."
       );
     } finally {
       setIsLoading(false);
@@ -129,151 +187,214 @@ export default function CreateProjectModal({
     );
   }
 
+  async function handleDeleteProject() {
+    if (!projectToEdit) {
+      return;
+    }
+
+    setDeleteError("");
+    setIsDeleting(true);
+
+    try {
+      await deleteProject(projectToEdit.id);
+      setIsDeleteModalOpen(false);
+      onDeleted?.(projectToEdit.id);
+      router.replace("/projects");
+      router.refresh();
+
+      if (typeof window !== "undefined") {
+        window.location.assign("/projects");
+      }
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue lors de la suppression du projet."
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title="Créer un projet"
-    >
-      <form onSubmit={handleSubmit} className="space-y-7">
-        <div className="space-y-2">
-          <label
-            htmlFor="project-title"
-            className="block text-[16px] text-[#222222]"
-          >
-            Titre*
-          </label>
-          <input
-            id="project-title"
-            value={formState.title}
-            onChange={(event) =>
-              setFormState((currentState) => ({
-                ...currentState,
-                title: event.target.value,
-              }))
-            }
-            className="h-[52px] w-full rounded-[6px] border border-[#d8deea] px-4 text-[15px] text-[#222222] outline-none transition focus:border-[#d85d0a]"
-          />
-        </div>
+    <>
+      <BaseModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={isEditMode ? "Modifier un projet" : "Créer un projet"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-7">
+          <div className="space-y-2">
+            <label
+              htmlFor="project-title"
+              className="block text-[16px] text-[#222222]"
+            >
+              Titre*
+            </label>
+            <input
+              id="project-title"
+              value={formState.title}
+              onChange={(event) =>
+                setFormState((currentState) => ({
+                  ...currentState,
+                  title: event.target.value,
+                }))
+              }
+              className="h-[52px] w-full rounded-[6px] border border-[#d8deea] px-4 text-[15px] text-[#222222] outline-none transition focus:border-[#d85d0a]"
+            />
+          </div>
 
-        <div className="space-y-2">
-          <label
-            htmlFor="project-description"
-            className="block text-[16px] text-[#222222]"
-          >
-            Description*
-          </label>
-          <textarea
-            id="project-description"
-            value={formState.description}
-            onChange={(event) =>
-              setFormState((currentState) => ({
-                ...currentState,
-                description: event.target.value,
-              }))
-            }
-            rows={3}
-            className="w-full rounded-[6px] border border-[#d8deea] px-4 py-3 text-[15px] text-[#222222] outline-none transition focus:border-[#d85d0a]"
-          />
-        </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="project-description"
+              className="block text-[16px] text-[#222222]"
+            >
+              Description*
+            </label>
+            <textarea
+              id="project-description"
+              value={formState.description}
+              onChange={(event) =>
+                setFormState((currentState) => ({
+                  ...currentState,
+                  description: event.target.value,
+                }))
+              }
+              rows={3}
+              className="w-full rounded-[6px] border border-[#d8deea] px-4 py-3 text-[15px] text-[#222222] outline-none transition focus:border-[#d85d0a]"
+            />
+          </div>
 
-        <div className="space-y-2">
-          <label className="block text-[16px] text-[#222222]">
-            Contributeurs
-          </label>
+          <div className="space-y-2">
+            <label className="block text-[16px] text-[#222222]">
+              Contributeurs
+            </label>
 
-          <button
-            type="button"
-            onClick={() =>
-              setIsContributorPickerOpen((currentValue) => !currentValue)
-            }
-            className="flex h-[52px] w-full items-center justify-between rounded-[6px] border border-[#d8deea] px-4 text-left text-[15px] text-[#778196]"
-          >
-            <span>
-              {selectedUsers.length > 0
-                ? `${selectedUsers.length} collaborateur(s) sélectionné(s)`
-                : "Choisir un ou plusieurs collaborateurs"}
-            </span>
-            <ChevronDownIcon />
-          </button>
+            <button
+              type="button"
+              onClick={() =>
+                setIsContributorPickerOpen((currentValue) => !currentValue)
+              }
+              className="flex h-[52px] w-full items-center justify-between rounded-[6px] border border-[#d8deea] px-4 text-left text-[15px] text-[#778196]"
+            >
+              <span>
+                {selectedUsers.length > 0
+                  ? `${selectedUsers.length} collaborateur(s) sélectionné(s)`
+                  : "Choisir un ou plusieurs collaborateurs"}
+              </span>
+              <ChevronDownIcon />
+            </button>
 
-          {selectedUsers.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2">
-              {selectedUsers.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => handleRemoveUser(user.id)}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#eef2f7] px-3 py-1.5 text-[13px] text-[#222222]"
-                >
-                  <span>{user.name || user.email}</span>
-                  <span className="text-[#778196]">×</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {isContributorPickerOpen && (
-            <div className="rounded-[10px] border border-[#d8deea] bg-white p-3">
-              <label className="flex h-[46px] items-center justify-between rounded-[8px] border border-[#d8deea] px-4 text-[#778196]">
-                <input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Rechercher un collaborateur"
-                  className="w-full bg-transparent text-[14px] text-[#222222] outline-none placeholder:text-[#778196]"
-                />
-                <SearchIcon />
-              </label>
-
-              <div className="mt-3 max-h-44 space-y-2 overflow-y-auto">
-                {isSearching ? (
-                  <p className="px-2 py-2 text-[14px] text-[#778196]">
-                    Recherche...
-                  </p>
-                ) : availableResults.length > 0 ? (
-                  availableResults.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onClick={() => handleSelectUser(user)}
-                      className="flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left transition hover:bg-[#f5f7fb]"
-                    >
-                      <span>
-                        <span className="block text-[14px] text-[#222222]">
-                          {user.name}
-                        </span>
-                        <span className="block text-[13px] text-[#778196]">
-                          {user.email}
-                        </span>
-                      </span>
-                    </button>
-                  ))
-                ) : (
-                  <p className="px-2 py-2 text-[14px] text-[#778196]">
-                    {searchQuery.trim().length < 2
-                      ? "Tape au moins 2 caracteres."
-                      : "Aucun utilisateur trouve."}
-                  </p>
-                )}
+            {selectedUsers.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {selectedUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => handleRemoveUser(user.id)}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#eef2f7] px-3 py-1.5 text-[13px] text-[#222222]"
+                  >
+                    <span>{user.name || user.email}</span>
+                    <span className="text-[#778196]">×</span>
+                  </button>
+                ))}
               </div>
-            </div>
+            )}
+
+            {isContributorPickerOpen && (
+              <div className="rounded-[10px] border border-[#d8deea] bg-white p-3">
+                <label className="flex h-[46px] items-center justify-between rounded-[8px] border border-[#d8deea] px-4 text-[#778196]">
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Rechercher un collaborateur"
+                    className="w-full bg-transparent text-[14px] text-[#222222] outline-none placeholder:text-[#778196]"
+                  />
+                  <SearchIcon />
+                </label>
+
+                <div className="mt-3 max-h-44 space-y-2 overflow-y-auto">
+                  {isSearching ? (
+                    <p className="px-2 py-2 text-[14px] text-[#778196]">
+                      Recherche...
+                    </p>
+                  ) : availableResults.length > 0 ? (
+                    availableResults.map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => handleSelectUser(user)}
+                        className="flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left transition hover:bg-[#f5f7fb]"
+                      >
+                        <span>
+                          <span className="block text-[14px] text-[#222222]">
+                            {user.name}
+                          </span>
+                          <span className="block text-[13px] text-[#778196]">
+                            {user.email}
+                          </span>
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-2 py-2 text-[14px] text-[#778196]">
+                      {searchQuery.trim().length < 2
+                        ? "Tape au moins 2 caracteres."
+                        : "Aucun utilisateur trouve."}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <p className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600">
+              {error}
+            </p>
           )}
-        </div>
 
-        {error && (
-          <p className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600">
-            {error}
-          </p>
-        )}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              disabled={isSubmitDisabled}
+              className="inline-flex h-[48px] items-center justify-center rounded-[12px] bg-[#dfe4ed] px-8 text-[16px] text-[#8b93a4] disabled:cursor-not-allowed enabled:bg-[#262323] enabled:text-white"
+            >
+              {isLoading
+                ? isEditMode
+                  ? "Mise à jour..."
+                  : "Création..."
+                : isEditMode
+                  ? "Enregistrer"
+                  : "Ajouter un projet"}
+            </button>
 
-        <button
-          type="submit"
-          disabled={isSubmitDisabled}
-          className="inline-flex h-[48px] items-center justify-center rounded-[12px] bg-[#dfe4ed] px-8 text-[16px] text-[#8b93a4] disabled:cursor-not-allowed enabled:bg-[#262323] enabled:text-white"
-        >
-          {isLoading ? "Création..." : "Ajouter un projet"}
-        </button>
-      </form>
-    </BaseModal>
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="inline-flex h-[48px] items-center justify-center rounded-[12px] border border-[#f3c7c7] px-6 text-[16px] text-[#b42318] transition hover:bg-[#fff5f5]"
+              >
+                Supprimer le projet
+              </button>
+            )}
+          </div>
+        </form>
+      </BaseModal>
+
+      <DeleteProjectConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          if (!isDeleting) {
+            setIsDeleteModalOpen(false);
+            setDeleteError("");
+          }
+        }}
+        onConfirm={handleDeleteProject}
+        isLoading={isDeleting}
+        projectName={projectToEdit?.name}
+        error={deleteError}
+      />
+    </>
   );
 }

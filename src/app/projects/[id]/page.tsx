@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import DashboardFooter from "@/components/dashboard/Footer";
 import Header from "@/components/dashboard/Header";
+import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import CreateTaskAiModal from "@/components/modals/CreateTaskAiModal";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
+import EditTaskModal from "@/components/modals/EditTaskModal";
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -21,107 +23,25 @@ import {
   getProjectTasks,
   getProjects,
 } from "@/services/projectService";
+import {
+  extractProjects,
+  extractTasks,
+  formatStatus,
+  getInitials,
+  getMemberIdentity,
+  getProjectAccessLevel,
+  getProjectMembers,
+  isTaskAssignedToUser,
+} from "@/app/projects/[id]/helpers";
 import type {
   Project,
-  ProjectMember,
   Task,
   User,
 } from "@/types/api";
 
-function extractProjects(data: unknown): Project[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "projects" in data &&
-    Array.isArray(data.projects)
-  ) {
-    return data.projects as Project[];
-  }
-
-  return [];
-}
-
-function extractTasks(data: unknown): Task[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "tasks" in data &&
-    Array.isArray(data.tasks)
-  ) {
-    return data.tasks as Task[];
-  }
-
-  return [];
-}
-
-function getInitials(value?: string) {
-  if (!value) {
-    return "NA";
-  }
-
-  return value
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-function getProjectMembers(project: Project | null): ProjectMember[] {
-  return project?.members ?? [];
-}
-
-function getMemberIdentity(member: ProjectMember) {
-  return {
-    id: member.user?.id ?? member.id ?? member.email ?? member.name ?? "member",
-    name: member.user?.name ?? member.name ?? "",
-    email: member.user?.email ?? member.email ?? "",
-  };
-}
-
-function formatStatus(status?: string) {
-  const value = (status ?? "").trim().toLowerCase();
-
-  if (
-    value === "en cours" ||
-    value === "en_cours" ||
-    value === "in progress" ||
-    value === "in_progress"
-  ) {
-    return {
-      label: "En cours",
-      className: "bg-[#fff1dd] text-[#f39c12]",
-    };
-  }
-
-  if (
-    value === "terminee" ||
-    value === "termine" ||
-    value === "done" ||
-    value === "completed"
-  ) {
-    return {
-      label: "Terminée",
-      className: "bg-[#e5fbef] text-[#2bb673]",
-    };
-  }
-
-  return {
-    label: "À faire",
-    className: "bg-[#ffe1e1] text-[#ff5a5a]",
-  };
-}
-
 export default function ProjectDetailsPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -133,6 +53,9 @@ export default function ProjectDetailsPage() {
     useState(false);
   const [isCreateTaskAiModalOpen, setIsCreateTaskAiModalOpen] =
     useState(false);
+  const [isEditProjectModalOpen, setIsEditProjectModalOpen] =
+    useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {
     async function loadProjectDetails() {
@@ -155,6 +78,11 @@ export default function ProjectDetailsPage() {
         const currentProject =
           projects.find((item) => item.id === projectId) ?? null;
 
+        if (!currentProject) {
+          router.replace("/projects");
+          return;
+        }
+
         setProfile(profileResponse.data);
         setProject(currentProject);
         setTasks(extractTasks(tasksResponse.data));
@@ -170,14 +98,14 @@ export default function ProjectDetailsPage() {
     }
 
     void loadProjectDetails();
-  }, [projectId]);
+  }, [projectId, router]);
 
   const members = getProjectMembers(project);
   const contributorCount = members.length;
-
-  const sortedTasks = useMemo(() => {
-    return [...tasks];
-  }, [tasks]);
+  const accessLevel = getProjectAccessLevel(project, profile);
+  const canEditProject = accessLevel === "admin";
+  const canCreateTask =
+    accessLevel === "admin" || accessLevel === "contributor";
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-[#222222]">
@@ -199,12 +127,15 @@ export default function ProjectDetailsPage() {
                 <h1 className="text-[32px] font-medium tracking-[-0.02em] text-[#222222] lg:text-[34px]">
                   {project?.name ?? "Projet"}
                 </h1>
-                <button
-                  type="button"
-                  className="text-[16px] text-[#f0670f] underline underline-offset-2"
-                >
-                  Modifier
-                </button>
+                {canEditProject && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditProjectModalOpen(true)}
+                    className="text-[16px] text-[#f0670f] underline underline-offset-2"
+                  >
+                    Modifier
+                  </button>
+                )}
               </div>
 
               <p className="mt-3 text-[17px] leading-8 text-[#778196] lg:text-[19px]">
@@ -214,20 +145,24 @@ export default function ProjectDetailsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsCreateTaskModalOpen(true)}
-              className="inline-flex h-[50px] items-center justify-center whitespace-nowrap rounded-xl bg-[#262323] px-7 text-[16px] text-white"
-            >
-              Créer une tâche
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsCreateTaskAiModalOpen(true)}
-              className="inline-flex h-[50px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#e46c0a] px-7 text-[16px] text-white"
-            >
-              ✦ <span>IA</span>
-            </button>
+            {canCreateTask && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateTaskModalOpen(true)}
+                  className="inline-flex h-[50px] items-center justify-center whitespace-nowrap rounded-xl bg-[#262323] px-7 text-[16px] text-white"
+                >
+                  Créer une tâche
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateTaskAiModalOpen(true)}
+                  className="inline-flex h-[50px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#e46c0a] px-7 text-[16px] text-white"
+                >
+                  ✦ <span>IA</span>
+                </button>
+              </>
+            )}
           </div>
         </section>
 
@@ -332,12 +267,12 @@ export default function ProjectDetailsPage() {
                 <div className="h-7 w-48 rounded bg-[#eef2f7]" />
                 <div className="mt-3 h-5 w-96 rounded bg-[#f3f5f9]" />
               </article>
-            ) : sortedTasks.length === 0 ? (
+            ) : tasks.length === 0 ? (
               <article className="rounded-[16px] border border-dashed border-[#dde3ed] bg-[#fcfcfc] px-8 py-16 text-center text-[#778196]">
                 Aucune tâche trouvée pour ce projet.
               </article>
             ) : (
-              sortedTasks.map((task) => {
+              tasks.map((task) => {
                 const status = formatStatus(task.status);
                 const assignees = task.assignees ?? [];
 
@@ -387,6 +322,7 @@ export default function ProjectDetailsPage() {
 
                       <button
                         type="button"
+                        onClick={() => setSelectedTask(task)}
                         className="inline-flex h-14 w-14 items-center justify-center rounded-[14px] border border-[#dde3ed] text-[#778196] shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
                       >
                         <MoreHorizontalIcon />
@@ -415,6 +351,7 @@ export default function ProjectDetailsPage() {
         onClose={() => setIsCreateTaskModalOpen(false)}
         projectId={projectId}
         members={members}
+        currentUser={profile}
         onCreated={(task) =>
           setTasks((currentTasks) => [task, ...currentTasks])
         }
@@ -428,6 +365,50 @@ export default function ProjectDetailsPage() {
           setTasks((currentTasks) => [...createdTasks, ...currentTasks])
         }
       />
+
+      {selectedTask && (
+        <EditTaskModal
+          isOpen={Boolean(selectedTask)}
+          onClose={() => setSelectedTask(null)}
+          projectId={projectId}
+          task={selectedTask}
+          members={members}
+          canEdit={accessLevel === "admin"}
+          canDelete={
+            accessLevel === "admin" ||
+            (accessLevel === "contributor" &&
+              isTaskAssignedToUser(selectedTask, profile))
+          }
+          onUpdated={(updatedTask) => {
+            setTasks((currentTasks) =>
+              currentTasks.map((task) =>
+                task.id === updatedTask.id ? updatedTask : task
+              )
+            );
+            setSelectedTask(updatedTask);
+          }}
+          onDeleted={(taskId) => {
+            setTasks((currentTasks) =>
+              currentTasks.filter((task) => task.id !== taskId)
+            );
+            setSelectedTask(null);
+          }}
+        />
+      )}
+
+      {isEditProjectModalOpen && (
+        <CreateProjectModal
+          isOpen={isEditProjectModalOpen}
+          onClose={() => setIsEditProjectModalOpen(false)}
+          projectToEdit={project}
+          onUpdated={(updatedProject) => {
+            setProject(updatedProject);
+          }}
+          onDeleted={() => {
+            router.push("/projects");
+          }}
+        />
+      )}
 
       <DashboardFooter />
     </main>

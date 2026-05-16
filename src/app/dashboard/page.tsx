@@ -240,13 +240,15 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <CreateProjectModal
-        isOpen={isCreateProjectModalOpen}
-        onClose={() => setIsCreateProjectModalOpen(false)}
-        onCreated={(project) =>
-          setProjects((currentProjects) => [project, ...currentProjects])
-        }
-      />
+      {isCreateProjectModalOpen && (
+        <CreateProjectModal
+          isOpen={isCreateProjectModalOpen}
+          onClose={() => setIsCreateProjectModalOpen(false)}
+          onCreated={(project) =>
+            setProjects((currentProjects) => [project, ...currentProjects])
+          }
+        />
+      )}
 
       <DashboardFooter />
     </main>

@@ -40,13 +40,63 @@ export function getProjects(): Promise<ApiResponse<Project[]>> {
   });
 }
 
+function extractProject(data: unknown): Project {
+  if (data && typeof data === "object" && "id" in data) {
+    return data as Project;
+  }
+
+  if (
+    data &&
+    typeof data === "object" &&
+    "project" in data &&
+    data.project &&
+    typeof data.project === "object"
+  ) {
+    return data.project as Project;
+  }
+
+  throw new Error("Le projet n'a pas pu etre lu depuis la reponse API.");
+}
+
 // Cree un nouveau projet avec ses contributeurs.
-export function createProject(
+export async function createProject(
   payload: CreateProjectPayload
 ): Promise<ApiResponse<Project>> {
-  return apiRequest<Project>("/projects", {
+  const response = await apiRequest<unknown>("/projects", {
     method: "POST",
     body: payload,
+    requireAuth: true,
+  });
+
+  return {
+    ...response,
+    data: extractProject(response.data),
+  };
+}
+
+// Met a jour un projet existant.
+export async function updateProject(
+  projectId: string,
+  payload: CreateProjectPayload
+): Promise<ApiResponse<Project>> {
+  const response = await apiRequest<unknown>(`/projects/${projectId}`, {
+    method: "PUT",
+    body: payload,
+    requireAuth: true,
+  });
+
+  return {
+    ...response,
+    data: extractProject(response.data),
+  };
+}
+
+// Supprime un projet existant.
+export function deleteProject(
+  projectId: string
+): Promise<ApiResponse<null>> {
+  return apiRequest<null>(`/projects/${projectId}`, {
+    method: "DELETE",
     requireAuth: true,
   });
 }
@@ -97,6 +147,16 @@ export async function updateProjectTask(
     ...response,
     data: extractTask(response.data),
   };
+}
+
+export function deleteProjectTask(
+  projectId: string,
+  taskId: string
+): Promise<ApiResponse<null>> {
+  return apiRequest<null>(`/projects/${projectId}/tasks/${taskId}`, {
+    method: "DELETE",
+    requireAuth: true,
+  });
 }
 
 export async function createProjectTask(

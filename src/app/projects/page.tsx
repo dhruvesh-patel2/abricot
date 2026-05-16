@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -241,14 +242,14 @@ export default function ProjectsPage() {
 
                     <div className="mt-4 flex flex-wrap items-center gap-1.5">
                       {profile && (
-                        <>
+                        <Fragment key={`profile-${project.id}`}>
                           <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-[#fde8db] px-2 text-[12px] text-[#222222]">
                             {getInitials(profile.name)}
                           </span>
                           <span className="inline-flex rounded-full bg-[#fde8db] px-4 py-1.5 text-[14px] text-[#f0670f]">
                             Propriétaire
                           </span>
-                        </>
+                        </Fragment>
                       )}
 
                       {members.slice(0, 2).map((member) => (
@@ -268,19 +269,21 @@ export default function ProjectsPage() {
         )}
       </div>
 
-      <CreateProjectModal
-        isOpen={isCreateProjectModalOpen}
-        onClose={() => setIsCreateProjectModalOpen(false)}
-        onCreated={(project) =>
-          setProjects((currentProjects) => [
-            {
-              ...project,
-              tasks: [],
-            },
-            ...currentProjects,
-          ])
-        }
-      />
+      {isCreateProjectModalOpen && (
+        <CreateProjectModal
+          isOpen={isCreateProjectModalOpen}
+          onClose={() => setIsCreateProjectModalOpen(false)}
+          onCreated={(project) =>
+            setProjects((currentProjects) => [
+              {
+                ...project,
+                tasks: [],
+              },
+              ...currentProjects,
+            ])
+          }
+        />
+      )}
 
       <DashboardFooter />
     </main>
