@@ -18,6 +18,16 @@ export type RegisterPayload = {
   name?: string;
 };
 
+export type UpdateProfilePayload = {
+  name: string;
+  email: string;
+};
+
+export type UpdatePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 // Authentifie un utilisateur et retourne son profil + token.
 export function loginUser(
   payload: LoginPayload
@@ -39,9 +49,57 @@ export function registerUser(
 }
 
 // Recupere le profil de l'utilisateur connecte.
-export function getProfile(): Promise<ApiResponse<User>> {
-  return apiRequest<User>("/auth/profile", {
+function extractProfile(data: unknown): User {
+  if (data && typeof data === "object" && "id" in data) {
+    return data as User;
+  }
+
+  if (
+    data &&
+    typeof data === "object" &&
+    "user" in data &&
+    data.user &&
+    typeof data.user === "object"
+  ) {
+    return data.user as User;
+  }
+
+  throw new Error("Le profil n'a pas pu etre lu depuis la reponse API.");
+}
+
+export async function getProfile(): Promise<ApiResponse<User>> {
+  const response = await apiRequest<unknown>("/auth/profile", {
     method: "GET",
+    requireAuth: true,
+  });
+
+  return {
+    ...response,
+    data: extractProfile(response.data),
+  };
+}
+
+export async function updateProfile(
+  payload: UpdateProfilePayload
+): Promise<ApiResponse<User>> {
+  const response = await apiRequest<unknown>("/auth/profile", {
+    method: "PUT",
+    body: payload,
+    requireAuth: true,
+  });
+
+  return {
+    ...response,
+    data: extractProfile(response.data),
+  };
+}
+
+export function updatePassword(
+  payload: UpdatePasswordPayload
+): Promise<ApiResponse<null>> {
+  return apiRequest<null>("/auth/password", {
+    method: "PUT",
+    body: payload,
     requireAuth: true,
   });
 }
