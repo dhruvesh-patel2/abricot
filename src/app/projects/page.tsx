@@ -213,12 +213,12 @@ export default function ProjectsPage() {
                   <h2 className="text-[20px] font-medium text-[#222222]">
                     {project.name}
                   </h2>
-                  <p className="mt-3 line-clamp-2 text-[16px] leading-8 text-[#778196]">
+                  <p className="mt-3 line-clamp-2 text-[16px] leading-8 text-[#5f6b7a]">
                     {project.description || "Aucune description disponible."}
                   </p>
 
                   <div className="mt-14">
-                    <div className="flex items-center justify-between text-[16px] text-[#778196]">
+                    <div className="flex items-center justify-between text-[16px] text-[#5f6b7a]">
                       <span>Progression</span>
                       <span className="text-[#222222]">{progress}%</span>
                     </div>
@@ -230,13 +230,13 @@ export default function ProjectsPage() {
                       />
                     </div>
 
-                    <p className="mt-3 text-[13px] text-[#8b93a4]">
+                    <p className="mt-3 text-[13px] text-[#5f6b7a]">
                       {completedTasks}/{totalTasks} tâches terminées
                     </p>
                   </div>
 
                   <div className="mt-14">
-                    <p className="text-[14px] text-[#8b93a4]">
+                    <p className="text-[14px] text-[#5f6b7a]">
                       Équipe ({members.length})
                     </p>
 
@@ -246,7 +246,7 @@ export default function ProjectsPage() {
                           <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-[#fde8db] px-2 text-[12px] text-[#222222]">
                             {getInitials(profile.name)}
                           </span>
-                          <span className="inline-flex rounded-full bg-[#fde8db] px-4 py-1.5 text-[14px] text-[#f0670f]">
+                          <span className="inline-flex rounded-full bg-[#fde8db] px-4 py-1.5 text-[14px] text-[#8a3b00]">
                             Propriétaire
                           </span>
                         </Fragment>

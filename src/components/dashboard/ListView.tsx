@@ -27,13 +27,13 @@ function formatStatus(status?: string) {
   ) {
     return {
       label: "En cours",
-      className: "bg-[#fff1dd] text-[#f39c12]",
+      className: "bg-[#fff1dd] text-[#9a5a00]",
     };
   }
 
   return {
     label: "À faire",
-    className: "bg-[#ffe1e1] text-[#ff5a5a]",
+    className: "bg-[#ffe1e1] text-[#b42318]",
   };
 }
 
@@ -71,7 +71,7 @@ export default function ListView({
           <h2 className="text-[22px] font-medium text-[#222222]">
             Mes tâches assignées
           </h2>
-          <p className="mt-3 text-[16px] text-[#778196]">
+          <p className="mt-3 text-[16px] text-[#5f6b7a]">
             Par ordre de priorité
           </p>
         </div>
@@ -115,21 +115,21 @@ export default function ListView({
                     <h3 className="text-[18px] font-semibold text-[#222222]">
                       {task.title}
                     </h3>
-                    <p className="mt-2 text-[15px] text-[#778196]">
+                    <p className="mt-2 text-[15px] text-[#5f6b7a]">
                       {task.description || "Aucune description disponible."}
                     </p>
 
-                    <div className="mt-8 flex flex-wrap items-center gap-3 text-[15px] text-[#8a94a6]">
+                    <div className="mt-8 flex flex-wrap items-center gap-3 text-[15px] text-[#5f6b7a]">
                       <span className="inline-flex items-center gap-2">
                         <TaskFolderIcon />
                         <span>Nom du projet</span>
                       </span>
-                      <span className="text-[#c8ced8]">|</span>
+                      <span className="text-[#5f6b7a]">|</span>
                       <span className="inline-flex items-center gap-2">
                         <TaskCalendarIcon />
                         <span>9 mars</span>
                       </span>
-                      <span className="text-[#c8ced8]">|</span>
+                      <span className="text-[#5f6b7a]">|</span>
                       <span className="inline-flex items-center gap-2">
                         <CommentBubbleIcon />
                         <span>{task.comments?.length ?? 2}</span>

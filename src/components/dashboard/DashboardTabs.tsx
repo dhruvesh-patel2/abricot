@@ -15,7 +15,7 @@ export default function DashboardTabs({
   onChange,
 }: DashboardTabsProps) {
   const baseClass =
-    "flex h-[45px] items-center gap-3 rounded-xl px-5 text-[15px]";
+    "flex h-[45px] items-center gap-3 rounded-xl px-5 text-[15px] font-medium";
 
   return (
     <section className="mt-14 flex flex-wrap gap-2">
@@ -25,8 +25,8 @@ export default function DashboardTabs({
         aria-pressed={view === "list"}
         className={`${baseClass} ${
           view === "list"
-            ? "bg-[#fee8db] text-[#f0670f]"
-            : "bg-white text-[#f0670f]"
+            ? "bg-[#fee8db] text-[#8a3b00]"
+            : "bg-white text-[#b45309]"
         }`}
       >
         <ChecklistIcon />
@@ -38,8 +38,8 @@ export default function DashboardTabs({
         aria-pressed={view === "kanban"}
         className={`${baseClass} ${
           view === "kanban"
-            ? "bg-[#fee8db] text-[#f0670f]"
-            : "bg-white text-[#f0670f]"
+            ? "bg-[#fee8db] text-[#8a3b00]"
+            : "bg-white text-[#b45309]"
         }`}
       >
         <CalendarIcon />

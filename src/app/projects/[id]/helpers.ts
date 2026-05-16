@@ -126,7 +126,7 @@ export function isTaskAssignedToUser(task: Task, profile: User | null) {
 }
 
 export function formatStatus(status?: string) {
-  const value = (status ?? "").trim().toLowerCase();
+  const value = normalizeTaskStatus(status);
 
   if (
     value === "en cours" ||
@@ -136,7 +136,7 @@ export function formatStatus(status?: string) {
   ) {
     return {
       label: "En cours",
-      className: "bg-[#fff1dd] text-[#f39c12]",
+      className: "bg-[#fff1dd] text-[#9a5a00]",
     };
   }
 
@@ -148,12 +148,18 @@ export function formatStatus(status?: string) {
   ) {
     return {
       label: "Terminée",
-      className: "bg-[#e5fbef] text-[#2bb673]",
+      className: "bg-[#e5fbef] text-[#166534]",
     };
   }
 
   return {
     label: "À faire",
-    className: "bg-[#ffe1e1] text-[#ff5a5a]",
+    className: "bg-[#ffe1e1] text-[#b42318]",
   };
+}
+
+export function normalizeTaskStatus(status?: string) {
+  return (status ?? "")
+    .trim()
+    .toLowerCase();
 }

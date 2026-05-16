@@ -31,7 +31,7 @@ export default function EmptyStateCard({
           {title}
         </h3>
         <p
-          className={`text-[#778196] ${
+          className={`text-[#5f6b7a] ${
             compact ? "mt-2 text-[14px] leading-6" : "mt-3 text-[16px] leading-7"
           }`}
         >

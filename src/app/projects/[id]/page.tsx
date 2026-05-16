@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 
 import DashboardFooter from "@/components/dashboard/Footer";
 import Header from "@/components/dashboard/Header";
+import TaskSearchBar from "@/components/dashboard/TaskSearchBar";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import CreateTaskAiModal from "@/components/modals/CreateTaskAiModal";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
@@ -16,7 +16,6 @@ import {
   ChecklistIcon,
   ChevronDownIcon,
   MoreHorizontalIcon,
-  SearchIcon,
 } from "@/components/dashboard/icons";
 import { getProfile } from "@/services/authService";
 import {
@@ -32,6 +31,7 @@ import {
   getProjectAccessLevel,
   getProjectMembers,
   isTaskAssignedToUser,
+  normalizeTaskStatus,
 } from "@/app/projects/[id]/helpers";
 import type {
   Project,
@@ -56,6 +56,9 @@ export default function ProjectDetailsPage() {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] =
     useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskSearchQuery, setTaskSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const deferredTaskSearchQuery = useDeferredValue(taskSearchQuery);
 
   useEffect(() => {
     async function loadProjectDetails() {
@@ -106,6 +109,38 @@ export default function ProjectDetailsPage() {
   const canEditProject = accessLevel === "admin";
   const canCreateTask =
     accessLevel === "admin" || accessLevel === "contributor";
+  const normalizedTaskSearchQuery = deferredTaskSearchQuery
+    .trim()
+    .toLowerCase();
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch = !normalizedTaskSearchQuery
+      ? true
+      : [task.title, task.description]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedTaskSearchQuery);
+
+    const normalizedStatus = normalizeTaskStatus(task.status);
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "TODO"
+          ? normalizedStatus === "a faire" ||
+            normalizedStatus === "a_faire" ||
+            normalizedStatus === "todo"
+          : statusFilter === "IN_PROGRESS"
+            ? normalizedStatus === "en cours" ||
+              normalizedStatus === "en_cours" ||
+              normalizedStatus === "in progress" ||
+              normalizedStatus === "in_progress"
+            : normalizedStatus === "terminee" ||
+              normalizedStatus === "termine" ||
+              normalizedStatus === "done" ||
+              normalizedStatus === "completed";
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-[#222222]">
@@ -114,13 +149,14 @@ export default function ProjectDetailsPage() {
       <div className="mx-auto max-w-[1440px] px-8 pb-12 pt-12 lg:px-10 lg:pt-20">
         <section className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-4 lg:gap-5">
-            <Link
-              href="/projects"
+            <button
+              type="button"
+              onClick={() => router.push("/projects")}
               className="inline-flex h-14 w-14 items-center justify-center rounded-[14px] border border-[#dde3ed] bg-white text-[#222222] shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
               aria-label="Retour aux projets"
             >
               <ArrowLeftIcon />
-            </Link>
+            </button>
 
             <div className="max-w-[820px]">
               <div className="flex items-center gap-4">
@@ -131,14 +167,15 @@ export default function ProjectDetailsPage() {
                   <button
                     type="button"
                     onClick={() => setIsEditProjectModalOpen(true)}
-                    className="text-[16px] text-[#f0670f] underline underline-offset-2"
+                    aria-label="Modifier le projet"
+                    className="text-[16px] text-[#8a3b00] underline underline-offset-2"
                   >
                     Modifier
                   </button>
                 )}
               </div>
 
-              <p className="mt-3 text-[17px] leading-8 text-[#778196] lg:text-[19px]">
+              <p className="mt-3 text-[17px] leading-8 text-[#5f6b7a] lg:text-[19px]">
                 {project?.description || "Aucune description disponible."}
               </p>
             </div>
@@ -157,7 +194,8 @@ export default function ProjectDetailsPage() {
                 <button
                   type="button"
                   onClick={() => setIsCreateTaskAiModalOpen(true)}
-                  className="inline-flex h-[50px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#e46c0a] px-7 text-[16px] text-white"
+                  aria-label="Créer des tâches avec l'assistant IA"
+                  className="inline-flex h-[50px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#b45309] px-7 text-[16px] font-medium text-white"
                 >
                   ✦ <span>IA</span>
                 </button>
@@ -176,7 +214,7 @@ export default function ProjectDetailsPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <p className="text-[17px] text-[#222222] lg:text-[18px]">
               <span className="font-medium">Contributeurs</span>{" "}
-              <span className="text-[#778196]">{contributorCount} personnes</span>
+              <span className="text-[#5f6b7a]">{contributorCount} personnes</span>
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -185,7 +223,7 @@ export default function ProjectDetailsPage() {
                   <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-[#fde8db] px-2 text-[12px] text-[#222222]">
                     {getInitials(profile.name)}
                   </span>
-                  <span className="inline-flex rounded-full bg-[#fde8db] px-4 py-1.5 text-[14px] text-[#f0670f]">
+                  <span className="inline-flex rounded-full bg-[#fde8db] px-4 py-1.5 text-[14px] text-[#8a3b00]">
                     Propriétaire
                   </span>
                 </>
@@ -202,7 +240,7 @@ export default function ProjectDetailsPage() {
                         getMemberIdentity(member).email
                     )}
                   </span>
-                  <span className="text-[14px] text-[#778196]">
+                  <span className="text-[14px] text-[#5f6b7a]">
                     {getMemberIdentity(member).name ||
                       getMemberIdentity(member).email}
                   </span>
@@ -216,7 +254,7 @@ export default function ProjectDetailsPage() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h2 className="text-[22px] font-medium text-[#222222]">Tâches</h2>
-              <p className="mt-3 text-[16px] text-[#778196]">
+              <p className="mt-3 text-[16px] text-[#5f6b7a]">
                 Par ordre de priorité
               </p>
             </div>
@@ -226,38 +264,51 @@ export default function ProjectDetailsPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    className="flex h-[45px] items-center gap-3 rounded-xl bg-[#fee8db] px-5 text-[15px] text-[#f0670f]"
+                    className="flex h-[45px] items-center gap-3 rounded-xl bg-[#fee8db] px-5 text-[15px] font-medium text-[#8a3b00]"
                   >
                     <ChecklistIcon />
                     <span>Liste</span>
                   </button>
                   <button
                     type="button"
-                    className="flex h-[45px] items-center gap-3 rounded-xl bg-white px-5 text-[15px] text-[#f0670f]"
+                    className="flex h-[45px] items-center gap-3 rounded-xl bg-white px-5 text-[15px] font-medium text-[#8a3b00]"
                   >
                     <CalendarIcon />
                     <span>Calendrier</span>
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  className="flex h-[45px] w-[148px] items-center justify-between rounded-xl border border-[#d8deea] bg-white px-5 text-[#778196]"
-                >
-                  <span className="text-[15px]">Statut</span>
-                  <ChevronDownIcon />
-                </button>
+                <div className="relative flex h-[45px] w-[148px] items-center rounded-xl border border-[#d8deea] bg-white px-5 text-[#5f6b7a] focus-within:border-[#f0670f]">
+                  <select
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value)}
+                    aria-label="Filtrer les tâches par statut"
+                    className="h-full w-full appearance-none bg-transparent pr-8 text-[15px] text-[#5f6b7a] outline-none"
+                  >
+                    <option value="all">Statut</option>
+                    <option value="TODO">À faire</option>
+                    <option value="IN_PROGRESS">En cours</option>
+                    <option value="DONE">Terminée</option>
+                  </select>
+                  <span className="pointer-events-none absolute right-4">
+                    <ChevronDownIcon />
+                  </span>
+                </div>
 
-                <label className="flex h-[45px] w-[278px] items-center justify-between rounded-xl border border-[#d8deea] bg-white px-5 text-[#778196]">
-                  <span className="text-[15px]">Rechercher une tâche</span>
-                  <SearchIcon />
-                </label>
+                <div className="h-[45px] w-[278px] [&_label]:h-[45px] [&_label]:max-w-none [&_label]:px-5">
+                  <TaskSearchBar
+                    value={taskSearchQuery}
+                    onChange={setTaskSearchQuery}
+                  />
+                </div>
               </div>
 
-              <label className="hidden h-[45px] w-[278px] items-center justify-between rounded-xl border border-[#d8deea] bg-white px-5 text-[#778196]">
-                <span className="text-[15px]">Rechercher une tâche</span>
-                <SearchIcon />
-              </label>
+              <div className="hidden h-[45px] w-[278px] [&_label]:h-[45px] [&_label]:max-w-none [&_label]:px-5 lg:hidden">
+                <TaskSearchBar
+                  value={taskSearchQuery}
+                  onChange={setTaskSearchQuery}
+                />
+              </div>
             </div>
           </div>
 
@@ -271,8 +322,12 @@ export default function ProjectDetailsPage() {
               <article className="rounded-[16px] border border-dashed border-[#dde3ed] bg-[#fcfcfc] px-8 py-16 text-center text-[#778196]">
                 Aucune tâche trouvée pour ce projet.
               </article>
+            ) : filteredTasks.length === 0 ? (
+              <article className="rounded-[16px] border border-dashed border-[#dde3ed] bg-[#fcfcfc] px-8 py-16 text-center text-[#778196]">
+                Aucune tâche ne correspond à votre recherche.
+              </article>
             ) : (
-              tasks.map((task) => {
+              filteredTasks.map((task) => {
                 const status = formatStatus(task.status);
                 const assignees = task.assignees ?? [];
 
@@ -294,17 +349,17 @@ export default function ProjectDetailsPage() {
                           </span>
                         </div>
 
-                        <p className="mt-3 text-[16px] leading-8 text-[#778196]">
+                        <p className="mt-3 text-[16px] leading-8 text-[#5f6b7a]">
                           {task.description || "Aucune description disponible."}
                         </p>
 
-                        <p className="mt-7 flex items-center gap-2 text-[15px] text-[#778196]">
+                        <p className="mt-7 flex items-center gap-2 text-[15px] text-[#5f6b7a]">
                           <span>Échéance :</span>
                           <CalendarIcon />
                           <span>9 mars</span>
                         </p>
 
-                        <div className="mt-6 flex flex-wrap items-center gap-2 text-[15px] text-[#778196]">
+                        <div className="mt-6 flex flex-wrap items-center gap-2 text-[15px] text-[#5f6b7a]">
                           <span>Assigné à :</span>
                           {assignees.map((assignee) => (
                             <div
@@ -323,6 +378,7 @@ export default function ProjectDetailsPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedTask(task)}
+                        aria-label={`Ouvrir les actions pour la tâche ${task.title}`}
                         className="inline-flex h-14 w-14 items-center justify-center rounded-[14px] border border-[#dde3ed] text-[#778196] shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
                       >
                         <MoreHorizontalIcon />

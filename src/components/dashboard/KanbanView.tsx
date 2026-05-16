@@ -64,7 +64,7 @@ function KanbanColumn({
     >
       <div className="flex items-center gap-2.5">
         <h2 className="text-[17px] font-medium text-[#222222]">{title}</h2>
-        <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-[#e9edf3] px-2.5 text-[13px] text-[#778196]">
+        <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-[#e9edf3] px-2.5 text-[13px] text-[#4d5768]">
           {tasks.length}
         </span>
       </div>
@@ -109,7 +109,7 @@ function KanbanColumn({
                     <h3 className="text-[15px] font-semibold leading-5 text-[#222222]">
                       {task.title}
                     </h3>
-                    <p className="mt-1.5 text-[13px] leading-6 text-[#778196]">
+                    <p className="mt-1.5 text-[13px] leading-6 text-[#5f6b7a]">
                       {task.description || "Aucune description disponible."}
                     </p>
                   </div>
@@ -121,17 +121,17 @@ function KanbanColumn({
                   </span>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-[#8a94a6]">
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-[#5f6b7a]">
                   <span className="inline-flex items-center gap-1.5">
                     <TaskFolderIcon />
                     <span>Nom du projet</span>
                   </span>
-                  <span className="text-[#c8ced8]">|</span>
+                  <span className="text-[#5f6b7a]">|</span>
                   <span className="inline-flex items-center gap-1.5">
                     <TaskCalendarIcon />
                     <span>9 mars</span>
                   </span>
-                  <span className="text-[#c8ced8]">|</span>
+                  <span className="text-[#5f6b7a]">|</span>
                   <span className="inline-flex items-center gap-1.5">
                     <CommentBubbleIcon />
                     <span>{task.comments?.length ?? 2}</span>
@@ -263,7 +263,7 @@ export default function KanbanView({
         tasks={todoTasks}
         isLoading={isLoading}
         statusLabel="À faire"
-        statusClassName="bg-[#ffe1e1] text-[#ff5a5a]"
+        statusClassName="bg-[#ffe1e1] text-[#b42318]"
         dropValue="TODO"
         draggedTaskId={draggedTask?.id ?? null}
         activeDropValue={activeDropValue}
@@ -285,7 +285,7 @@ export default function KanbanView({
         tasks={inProgressTasks}
         isLoading={isLoading}
         statusLabel="En cours"
-        statusClassName="bg-[#fff1dd] text-[#f39c12]"
+        statusClassName="bg-[#fff1dd] text-[#9a5a00]"
         dropValue="IN_PROGRESS"
         draggedTaskId={draggedTask?.id ?? null}
         activeDropValue={activeDropValue}
@@ -307,7 +307,7 @@ export default function KanbanView({
         tasks={doneTasks}
         isLoading={isLoading}
         statusLabel="Terminée"
-        statusClassName="bg-[#e5fbef] text-[#2bb673]"
+        statusClassName="bg-[#e5fbef] text-[#166534]"
         dropValue="DONE"
         draggedTaskId={draggedTask?.id ?? null}
         activeDropValue={activeDropValue}

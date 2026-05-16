@@ -266,16 +266,17 @@ export default function CreateProjectModal({
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[16px] text-[#222222]">
+            <div className="block text-[16px] text-[#222222]">
               Contributeurs
-            </label>
+            </div>
 
             <button
               type="button"
               onClick={() =>
                 setIsContributorPickerOpen((currentValue) => !currentValue)
               }
-              className="flex h-[52px] w-full items-center justify-between rounded-[6px] border border-[#d8deea] px-4 text-left text-[15px] text-[#778196]"
+              aria-label="Choisir les contributeurs du projet"
+              className="flex h-[52px] w-full items-center justify-between rounded-[6px] border border-[#d8deea] px-4 text-left text-[15px] text-[#5f6b7a]"
             >
               <span>
                 {selectedUsers.length > 0
@@ -292,10 +293,11 @@ export default function CreateProjectModal({
                     key={user.id}
                     type="button"
                     onClick={() => handleRemoveUser(user.id)}
+                    aria-label={`Retirer ${user.name || user.email} des contributeurs`}
                     className="inline-flex items-center gap-2 rounded-full bg-[#eef2f7] px-3 py-1.5 text-[13px] text-[#222222]"
                   >
                     <span>{user.name || user.email}</span>
-                    <span className="text-[#778196]">×</span>
+                    <span className="text-[#5f6b7a]">×</span>
                   </button>
                 ))}
               </div>
@@ -303,15 +305,16 @@ export default function CreateProjectModal({
 
             {isContributorPickerOpen && (
               <div className="rounded-[10px] border border-[#d8deea] bg-white p-3">
-                <label className="flex h-[46px] items-center justify-between rounded-[8px] border border-[#d8deea] px-4 text-[#778196]">
+                <div className="flex h-[46px] items-center justify-between rounded-[8px] border border-[#d8deea] px-4 text-[#5f6b7a]">
                   <input
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Rechercher un collaborateur"
+                    aria-label="Rechercher un collaborateur"
                     className="w-full bg-transparent text-[14px] text-[#222222] outline-none placeholder:text-[#778196]"
                   />
                   <SearchIcon />
-                </label>
+                </div>
 
                 <div className="mt-3 max-h-44 space-y-2 overflow-y-auto">
                   {isSearching ? (
