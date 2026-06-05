@@ -1,8 +1,26 @@
 import type { ApiResponse } from "@/types/api";
+import {
+  clearSession,
+  redirectToLogin,
+} from "@/services/session";
 
-// URL de base de l'API backend, centralisee pour tous les services.
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+function getApiUrl() {
+  const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+  if (configuredApiUrl) {
+    return configuredApiUrl;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL doit etre configure en production."
+    );
+  }
+
+  return "http://localhost:8000";
+}
+
+export const API_URL = getApiUrl();
 
 type RequestConfig = Omit<RequestInit, "body" | "headers"> & {
   body?: BodyInit | Record<string, unknown> | null;
@@ -41,10 +59,22 @@ export function authHeaders(
   return requestHeaders;
 }
 
-// Uniformise la lecture des reponses JSON et texte du backend.
+type ParsedResponse<T> = {
+  success: boolean;
+  message: string;
+  data?: T;
+};
+
 async function parseResponse<T>(
   response: Response
-): Promise<ApiResponse<T>> {
+): Promise<ParsedResponse<T>> {
+  if (response.status === 204) {
+    return {
+      success: true,
+      message: "Action effectuée avec succès.",
+    };
+  }
+
   const contentType = response.headers.get("Content-Type") ?? "";
 
   if (contentType.includes("application/json")) {
@@ -56,7 +86,6 @@ async function parseResponse<T>(
   return {
     success: response.ok,
     message: text || "Reponse inattendue du serveur.",
-    data: null as T,
   };
 }
 
@@ -92,11 +121,30 @@ export async function apiRequest<T>(
 
   const payload = await parseResponse<T>(response);
 
+  if (response.status === 401) {
+    clearSession();
+
+    if (typeof window !== "undefined") {
+      redirectToLogin();
+    }
+  }
+
   if (!response.ok) {
     throw new Error(
       payload.message || "Une erreur est survenue lors de la requete API."
     );
   }
 
-  return payload;
+  if (response.status === 204) {
+    return {
+      ...(payload as ApiResponse<T>),
+      data: null as T,
+    };
+  }
+
+  if (payload.data === undefined) {
+    throw new Error("La reponse de l'API ne contient pas de donnees exploitables.");
+  }
+
+  return payload as ApiResponse<T>;
 }

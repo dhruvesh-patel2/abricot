@@ -33,7 +33,10 @@ export default function DeleteProjectConfirmModal({
         </p>
 
         {error && (
-          <p className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600">
+          <p
+            role="alert"
+            className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600"
+          >
             {error}
           </p>
         )}

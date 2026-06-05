@@ -140,7 +140,7 @@ export default function ListView({
                     </div>
                   </div>
 
-                  <div className="flex min-w-[120px] flex-col items-start gap-9 lg:items-end">
+                  <div className="flex w-full flex-col items-start gap-9 sm:w-auto sm:min-w-[120px] lg:items-end">
                     <span
                       className={`inline-flex rounded-full px-4 py-2 text-sm ${status.className}`}
                     >
@@ -150,7 +150,7 @@ export default function ListView({
                     {projectHref ? (
                       <Link
                         href={projectHref}
-                        className="inline-flex h-[48px] w-[122px] items-center justify-center rounded-[12px] bg-[#262323] text-[18px] text-white"
+                        className="inline-flex h-[48px] w-full sm:w-[122px] items-center justify-center rounded-[12px] bg-[#262323] text-[18px] text-white"
                       >
                         Voir
                       </Link>
@@ -158,7 +158,7 @@ export default function ListView({
                       <button
                         type="button"
                         disabled
-                        className="inline-flex h-[48px] w-[122px] items-center justify-center rounded-[12px] bg-[#262323] text-[18px] text-white opacity-50"
+                        className="inline-flex h-[48px] w-full sm:w-[122px] items-center justify-center rounded-[12px] bg-[#262323] text-[18px] text-white opacity-50"
                       >
                         Voir
                       </button>

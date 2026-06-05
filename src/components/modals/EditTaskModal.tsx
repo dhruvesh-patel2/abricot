@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import {
   CalendarIcon,
@@ -63,6 +63,8 @@ export default function EditTaskModal({
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const assigneeListId = useId();
+  const statusGroupId = useId();
   const validMemberIds = members
     .map(getMemberIdentity)
     .map((member) => member.id);
@@ -87,6 +89,9 @@ export default function EditTaskModal({
     event.preventDefault();
 
     if (!canEdit) {
+      setError(
+        "Seuls les contributeurs de ce projet peuvent modifier cette tâche."
+      );
       return;
     }
 
@@ -127,6 +132,9 @@ export default function EditTaskModal({
 
   async function handleDelete() {
     if (!canDelete) {
+      setError(
+        "Seuls les contributeurs de ce projet peuvent supprimer cette tâche."
+      );
       return;
     }
 
@@ -194,6 +202,8 @@ export default function EditTaskModal({
             onClick={() =>
               setIsAssigneePickerOpen((currentValue) => !currentValue)
             }
+            aria-expanded={isAssigneePickerOpen}
+            aria-controls={assigneeListId}
             className="flex h-[52px] w-full items-center justify-between rounded-[6px] border border-[#d8deea] px-4 text-left text-[15px] text-[#778196] disabled:bg-[#f8fafc]"
           >
             <span>
@@ -205,7 +215,10 @@ export default function EditTaskModal({
           </button>
 
           {isAssigneePickerOpen && canEdit && (
-            <div className="rounded-[10px] border border-[#d8deea] bg-white p-3">
+            <div
+              id={assigneeListId}
+              className="rounded-[10px] border border-[#d8deea] bg-white p-3"
+            >
               <div className="space-y-2">
                 {members.map((member) => {
                   const identity = getMemberIdentity(member);
@@ -241,12 +254,21 @@ export default function EditTaskModal({
 
         <div className="space-y-3">
           <label className="block text-[16px] text-[#222222]">Statut :</label>
-          <div className="flex flex-wrap gap-3">
+          <div
+            role="radiogroup"
+            aria-labelledby={statusGroupId}
+            className="flex flex-wrap gap-3"
+          >
+            <span id={statusGroupId} className="sr-only">
+              Statut
+            </span>
             {taskStatusOptions.map((statusOption) => (
               <button
                 key={statusOption.value}
                 type="button"
                 disabled={!canEdit}
+                role="radio"
+                aria-checked={status === statusOption.value}
                 onClick={() => setStatus(statusOption.value)}
                 className={`inline-flex rounded-full px-4 py-1.5 text-[14px] transition ${
                   status === statusOption.value
@@ -262,12 +284,15 @@ export default function EditTaskModal({
 
         {!canEdit && (
           <p className="rounded-[8px] bg-[#f8fafc] px-4 py-3 text-[14px] text-[#778196]">
-            Seul un administrateur peut modifier cette tâche.
+            Seuls les contributeurs de ce projet peuvent modifier cette tâche.
           </p>
         )}
 
         {error && (
-          <p className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600">
+          <p
+            role="alert"
+            className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600"
+          >
             {error}
           </p>
         )}

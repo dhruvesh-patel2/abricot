@@ -1,12 +1,12 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useState } from "react";
 
 import DashboardFooter from "@/components/dashboard/Footer";
 import Header from "@/components/dashboard/Header";
 import TaskSearchBar from "@/components/dashboard/TaskSearchBar";
-import { matchesTaskStatusFilter } from "@/app/projects/utils";
+import { useProjectDetails } from "@/hooks/useProjectDetails";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import CreateTaskAiModal from "@/components/modals/CreateTaskAiModal";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
@@ -18,38 +18,20 @@ import {
   ChevronDownIcon,
   MoreHorizontalIcon,
 } from "@/components/dashboard/icons";
-import { getProfile } from "@/services/authService";
 import {
-  getProjectTasks,
-  getProjects,
-} from "@/services/projectService";
-import {
-  extractProjects,
-  extractTasks,
+  canManageProject,
+  canManageProjectTasks,
   formatStatus,
   getInitials,
   getMemberIdentity,
-  getProjectAccessLevel,
-  getProjectMembers,
-  isTaskAssignedToUser,
 } from "@/app/projects/[id]/helpers";
-import type {
-  Project,
-  Task,
-  User,
-} from "@/types/api";
+import type { Task } from "@/types/api";
 
-// Page detail d'un projet avec ses taches et ses actions.
 export default function ProjectDetailsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  const [profile, setProfile] = useState<User | null>(null);
-  const [project, setProject] = useState<Project | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] =
     useState(false);
   const [isCreateTaskAiModalOpen, setIsCreateTaskAiModalOpen] =
@@ -60,73 +42,59 @@ export default function ProjectDetailsPage() {
   const [taskSearchQuery, setTaskSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const deferredTaskSearchQuery = useDeferredValue(taskSearchQuery);
+  const {
+    accessLevel,
+    error,
+    filteredTasks,
+    isLoading,
+    members,
+    profile,
+    project,
+    setProject,
+    setTasks,
+    tasks,
+  } = useProjectDetails({
+    projectId,
+    statusFilter,
+    taskSearchQuery: deferredTaskSearchQuery,
+  });
+  const contributorCount = members.length;
+  const canEditProject = canManageProject(accessLevel);
+  const canManageTasks = canManageProjectTasks(accessLevel);
+  const currentUserRoleLabel =
+    accessLevel === "admin" ? "Administrateur" : "Contributeur";
 
-  useEffect(() => {
-    async function loadProjectDetails() {
-      if (!projectId) {
-        return;
-      }
-
-      setError("");
-      setIsLoading(true);
-
-      try {
-        const [profileResponse, projectsResponse, tasksResponse] =
-          await Promise.all([
-            getProfile(),
-            getProjects(),
-            getProjectTasks(projectId),
-          ]);
-
-        const projects = extractProjects(projectsResponse.data);
-        const currentProject =
-          projects.find((item) => item.id === projectId) ?? null;
-
-        if (!currentProject) {
-          router.replace("/projects");
-          return;
-        }
-
-        setProfile(profileResponse.data);
-        setProject(currentProject);
-        setTasks(extractTasks(tasksResponse.data));
-      } catch (error) {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Une erreur est survenue lors du chargement du projet."
-        );
-      } finally {
-        setIsLoading(false);
-      }
+  function handleOpenEditProjectModal() {
+    if (!canEditProject) {
+      return;
     }
 
-    void loadProjectDetails();
-  }, [projectId, router]);
+    setIsEditProjectModalOpen(true);
+  }
 
-  const members = getProjectMembers(project);
-  const contributorCount = members.length;
-  const accessLevel = getProjectAccessLevel(project, profile);
-  const canEditProject = accessLevel === "admin";
-  const canCreateTask =
-    accessLevel === "admin" || accessLevel === "contributor";
-  const normalizedTaskSearchQuery = deferredTaskSearchQuery
-    .trim()
-    .toLowerCase();
+  function handleOpenCreateTaskModal() {
+    if (!canManageTasks) {
+      return;
+    }
 
-  // La liste affiche d'abord les resultats de recherche,
-  // puis applique le filtre de statut choisi.
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch = !normalizedTaskSearchQuery
-      ? true
-      : [task.title, task.description]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedTaskSearchQuery);
+    setIsCreateTaskModalOpen(true);
+  }
 
-    return matchesSearch && matchesTaskStatusFilter(task.status, statusFilter);
-  });
+  function handleOpenCreateTaskAiModal() {
+    if (!canManageTasks) {
+      return;
+    }
+
+    setIsCreateTaskAiModalOpen(true);
+  }
+
+  function handleSelectTask(task: Task) {
+    if (!canManageTasks) {
+      return;
+    }
+
+    setSelectedTask(task);
+  }
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-[#222222]">
@@ -144,7 +112,7 @@ export default function ProjectDetailsPage() {
               <ArrowLeftIcon />
             </button>
 
-            <div className="max-w-[820px]">
+            <div className="w-full max-w-[820px]">
               <div className="flex items-center gap-4">
                 <h1 className="text-[32px] font-medium tracking-[-0.02em] text-[#222222] lg:text-[34px]">
                   {project?.name ?? "Projet"}
@@ -152,7 +120,7 @@ export default function ProjectDetailsPage() {
                 {canEditProject && (
                   <button
                     type="button"
-                    onClick={() => setIsEditProjectModalOpen(true)}
+                    onClick={handleOpenEditProjectModal}
                     aria-label="Modifier le projet"
                     className="text-[16px] text-[#8a3b00] underline underline-offset-2"
                   >
@@ -168,18 +136,18 @@ export default function ProjectDetailsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {canCreateTask && (
+            {canManageTasks && (
               <>
                 <button
                   type="button"
-                  onClick={() => setIsCreateTaskModalOpen(true)}
+                  onClick={handleOpenCreateTaskModal}
                   className="inline-flex h-[50px] items-center justify-center whitespace-nowrap rounded-xl bg-[#262323] px-7 text-[16px] text-white"
                 >
                   Créer une tâche
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsCreateTaskAiModalOpen(true)}
+                  onClick={handleOpenCreateTaskAiModal}
                   aria-label="Créer des tâches avec l'assistant IA"
                   className="inline-flex h-[50px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#b45309] px-7 text-[16px] font-medium text-white"
                 >
@@ -210,7 +178,7 @@ export default function ProjectDetailsPage() {
                     {getInitials(profile.name)}
                   </span>
                   <span className="inline-flex rounded-full bg-[#fde8db] px-4 py-1.5 text-[14px] text-[#8a3b00]">
-                    Propriétaire
+                    {currentUserRoleLabel}
                   </span>
                 </>
               )}
@@ -264,7 +232,7 @@ export default function ProjectDetailsPage() {
                   </button>
                 </div>
 
-                <div className="relative flex h-[45px] w-[148px] items-center rounded-xl border border-[#d8deea] bg-white px-5 text-[#5f6b7a] focus-within:border-[#f0670f]">
+                <div className="relative flex h-[45px] w-full sm:w-[148px] items-center rounded-xl border border-[#d8deea] bg-white px-5 text-[#5f6b7a] focus-within:border-[#f0670f]">
                   <select
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value)}
@@ -281,19 +249,12 @@ export default function ProjectDetailsPage() {
                   </span>
                 </div>
 
-                <div className="h-[45px] w-[278px] [&_label]:h-[45px] [&_label]:max-w-none [&_label]:px-5">
+                <div className="h-[45px] w-full sm:w-[278px] [&_label]:h-[45px] [&_label]:max-w-none [&_label]:px-5">
                   <TaskSearchBar
                     value={taskSearchQuery}
                     onChange={setTaskSearchQuery}
                   />
                 </div>
-              </div>
-
-              <div className="hidden h-[45px] w-[278px] [&_label]:h-[45px] [&_label]:max-w-none [&_label]:px-5 lg:hidden">
-                <TaskSearchBar
-                  value={taskSearchQuery}
-                  onChange={setTaskSearchQuery}
-                />
               </div>
             </div>
           </div>
@@ -363,7 +324,7 @@ export default function ProjectDetailsPage() {
 
                       <button
                         type="button"
-                        onClick={() => setSelectedTask(task)}
+                        onClick={() => handleSelectTask(task)}
                         aria-label={`Ouvrir les actions pour la tâche ${task.title}`}
                         className="inline-flex h-14 w-14 items-center justify-center rounded-[14px] border border-[#dde3ed] text-[#778196] shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
                       >
@@ -394,6 +355,7 @@ export default function ProjectDetailsPage() {
         projectId={projectId}
         members={members}
         currentUser={profile}
+        canCreate={canManageTasks}
         onCreated={(task) =>
           setTasks((currentTasks) => [task, ...currentTasks])
         }
@@ -403,6 +365,7 @@ export default function ProjectDetailsPage() {
         isOpen={isCreateTaskAiModalOpen}
         onClose={() => setIsCreateTaskAiModalOpen(false)}
         projectId={projectId}
+        canCreate={canManageTasks}
         onCreated={(createdTasks) =>
           setTasks((currentTasks) => [...createdTasks, ...currentTasks])
         }
@@ -415,12 +378,8 @@ export default function ProjectDetailsPage() {
           projectId={projectId}
           task={selectedTask}
           members={members}
-          canEdit={accessLevel === "admin"}
-          canDelete={
-            accessLevel === "admin" ||
-            (accessLevel === "contributor" &&
-              isTaskAssignedToUser(selectedTask, profile))
-          }
+          canEdit={canManageTasks}
+          canDelete={canManageTasks}
           onUpdated={(updatedTask) => {
             setTasks((currentTasks) =>
               currentTasks.map((task) =>
@@ -442,7 +401,9 @@ export default function ProjectDetailsPage() {
         <CreateProjectModal
           isOpen={isEditProjectModalOpen}
           onClose={() => setIsEditProjectModalOpen(false)}
+          currentUser={profile}
           projectToEdit={project}
+          canEditProject={canEditProject}
           onUpdated={(updatedProject) => {
             setProject(updatedProject);
           }}

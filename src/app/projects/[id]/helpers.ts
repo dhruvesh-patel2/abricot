@@ -11,12 +11,15 @@ export {
   getMemberIdentity,
   getProjectMembers,
   normalizeTaskStatus,
-} from "@/app/projects/utils";
+} from "@/utils/projectUtils";
 
 import {
   getMemberIdentity,
+  getProjectMembers,
   normalizeTaskStatus,
-} from "@/app/projects/utils";
+} from "@/utils/projectUtils";
+
+export type ProjectAccessLevel = "admin" | "contributor" | "none";
 
 function normalizeRole(role?: string) {
   return (role ?? "")
@@ -24,25 +27,50 @@ function normalizeRole(role?: string) {
     .toLowerCase();
 }
 
+function identityMatchesProfile(
+  member: ReturnType<typeof getMemberIdentity>,
+  profile: User
+) {
+  const profileId = (profile.id ?? "").trim().toLowerCase();
+  const profileEmail = (profile.email ?? "").trim().toLowerCase();
+  const profileName = (profile.name ?? "").trim().toLowerCase();
+
+  return (
+    member.id.trim().toLowerCase() === profileId ||
+    (member.email && member.email.trim().toLowerCase() === profileEmail) ||
+    (member.name && member.name.trim().toLowerCase() === profileName)
+  );
+}
+
 export function getProjectAccessLevel(
   project: Project | null,
   profile: User | null
-): "admin" | "contributor" | "none" {
+): ProjectAccessLevel {
   if (!project || !profile) {
     return "none";
   }
 
-  const matchingMember = (project.members ?? []).find((member) => {
+  const members = getProjectMembers(project);
+
+  const matchingMember = members.find((member) => {
     const identity = getMemberIdentity(member);
 
-    return identity.id === profile.id || identity.email === profile.email;
+    return identityMatchesProfile(identity, profile);
   });
 
   if (!matchingMember) {
-    return "admin";
+    if (members.length === 0) {
+      return "contributor";
+    }
+
+    return "none";
   }
 
   const role = normalizeRole(matchingMember.role);
+
+  if (!role) {
+    return "contributor";
+  }
 
   if (
     role === "admin" ||
@@ -55,6 +83,14 @@ export function getProjectAccessLevel(
   }
 
   return "contributor";
+}
+
+export function canManageProject(accessLevel: ProjectAccessLevel) {
+  return accessLevel === "admin";
+}
+
+export function canManageProjectTasks(accessLevel: ProjectAccessLevel) {
+  return accessLevel === "admin" || accessLevel === "contributor";
 }
 
 export function isTaskAssignedToUser(task: Task, profile: User | null) {

@@ -1,4 +1,5 @@
 import { apiRequest } from "@/services/api";
+import { extractEntity } from "@/services/responseParsers";
 import type {
   ApiResponse,
   AuthData,
@@ -48,23 +49,12 @@ export function registerUser(
   });
 }
 
-// Recupere le profil de l'utilisateur connecte.
 function extractProfile(data: unknown): User {
-  if (data && typeof data === "object" && "id" in data) {
-    return data as User;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "user" in data &&
-    data.user &&
-    typeof data.user === "object"
-  ) {
-    return data.user as User;
-  }
-
-  throw new Error("Le profil n'a pas pu etre lu depuis la reponse API.");
+  return extractEntity<User>(
+    data,
+    "user",
+    "Le profil n'a pas pu etre lu depuis la reponse API."
+  );
 }
 
 export async function getProfile(): Promise<ApiResponse<User>> {

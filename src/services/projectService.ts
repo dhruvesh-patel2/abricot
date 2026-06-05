@@ -1,4 +1,5 @@
 import { apiRequest } from "@/services/api";
+import { extractEntity } from "@/services/responseParsers";
 import type {
   ApiResponse,
   Project,
@@ -41,21 +42,11 @@ export function getProjects(): Promise<ApiResponse<Project[]>> {
 }
 
 function extractProject(data: unknown): Project {
-  if (data && typeof data === "object" && "id" in data) {
-    return data as Project;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "project" in data &&
-    data.project &&
-    typeof data.project === "object"
-  ) {
-    return data.project as Project;
-  }
-
-  throw new Error("Le projet n'a pas pu etre lu depuis la reponse API.");
+  return extractEntity<Project>(
+    data,
+    "project",
+    "Le projet n'a pas pu etre lu depuis la reponse API."
+  );
 }
 
 // Cree un nouveau projet avec ses contributeurs.
@@ -112,21 +103,11 @@ export function getProjectTasks(
 }
 
 function extractTask(data: unknown): Task {
-  if (data && typeof data === "object" && "id" in data) {
-    return data as Task;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "task" in data &&
-    data.task &&
-    typeof data.task === "object"
-  ) {
-    return data.task as Task;
-  }
-
-  throw new Error("La tache creee n'a pas pu etre lue depuis la reponse API.");
+  return extractEntity<Task>(
+    data,
+    "task",
+    "La tache creee n'a pas pu etre lue depuis la reponse API."
+  );
 }
 
 export async function updateProjectTask(

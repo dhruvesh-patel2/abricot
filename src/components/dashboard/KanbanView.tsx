@@ -143,7 +143,7 @@ function KanbanColumn({
                 {projectHref ? (
                   <Link
                     href={projectHref}
-                    className="mt-4 inline-flex h-[40px] w-[92px] items-center justify-center rounded-[12px] bg-[#262323] text-[14px] text-white"
+                    className="mt-4 inline-flex h-[40px] w-full sm:w-[92px] items-center justify-center rounded-[12px] bg-[#262323] text-[14px] text-white"
                   >
                     Voir
                   </Link>
@@ -151,7 +151,7 @@ function KanbanColumn({
                   <button
                     type="button"
                     disabled
-                    className="mt-4 inline-flex h-[40px] w-[92px] items-center justify-center rounded-[12px] bg-[#262323] text-[14px] text-white opacity-50"
+                    className="mt-4 inline-flex h-[40px] w-full sm:w-[92px] items-center justify-center rounded-[12px] bg-[#262323] text-[14px] text-white opacity-50"
                   >
                     Voir
                   </button>

@@ -22,6 +22,7 @@ type CreateTaskAiModalProps = {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
+  canCreate?: boolean;
   onCreated?: (tasks: Task[]) => void;
 };
 
@@ -75,6 +76,7 @@ export default function CreateTaskAiModal({
   isOpen,
   onClose,
   projectId,
+  canCreate = true,
   onCreated,
 }: CreateTaskAiModalProps) {
   const [prompt, setPrompt] = useState("");
@@ -129,6 +131,13 @@ export default function CreateTaskAiModal({
   }
 
   async function handleCreateTasks() {
+    if (!canCreate) {
+      setError(
+        "Seuls les contributeurs de ce projet peuvent créer une tâche."
+      );
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
@@ -256,8 +265,17 @@ export default function CreateTaskAiModal({
               })}
 
               {error && (
-                <p className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600">
+                <p
+                  role="alert"
+                  className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600"
+                >
                   {error}
+                </p>
+              )}
+
+              {!canCreate && (
+                <p className="rounded-[8px] bg-[#f8fafc] px-4 py-3 text-[14px] text-[#778196]">
+                  Seuls les contributeurs de ce projet peuvent créer une tâche.
                 </p>
               )}
 
@@ -265,7 +283,7 @@ export default function CreateTaskAiModal({
                 <button
                   type="button"
                   onClick={handleCreateTasks}
-                  disabled={draftTasks.length === 0 || isLoading}
+                  disabled={draftTasks.length === 0 || isLoading || !canCreate}
                   className="inline-flex h-[52px] items-center justify-center rounded-[14px] bg-[#262323] px-8 text-[16px] text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isLoading ? "Création..." : "+ Ajouter les tâches"}
@@ -288,6 +306,7 @@ export default function CreateTaskAiModal({
               type="button"
               onClick={handleGenerate}
               disabled={!prompt.trim()}
+              aria-label="Générer les tâches"
               className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#d85d0a] text-white disabled:opacity-50"
             >
               <SendIcon />

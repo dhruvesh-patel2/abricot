@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { ChevronDownIcon, SearchIcon } from "@/components/dashboard/icons";
 import BaseModal from "@/components/modals/BaseModal";
 import DeleteProjectConfirmModal from "@/components/modals/DeleteProjectConfirmModal";
+import { getProjectAccessLevel } from "@/app/projects/[id]/helpers";
 import {
   createProject,
   deleteProject,
@@ -22,8 +23,10 @@ import type {
 type CreateProjectModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  currentUser?: User | null;
   onCreated?: (project: Project) => void;
   projectToEdit?: Project | null;
+  canEditProject?: boolean;
   onUpdated?: (project: Project) => void;
   onDeleted?: (projectId: string) => void;
 };
@@ -64,12 +67,58 @@ function getInitialSelectedUsers(projectToEdit?: Project | null): User[] {
     .filter((user): user is User => user !== null);
 }
 
+function ensureCreatorAdmin(project: Project, currentUser?: User | null): Project {
+  if (!currentUser) {
+    return project;
+  }
+
+  const nextMembers = [...(project.members ?? [])];
+  const matchingMemberIndex = nextMembers.findIndex((member) => {
+    const memberId = member.user?.id ?? member.id;
+    const memberEmail = member.user?.email ?? member.email;
+
+    return (
+      memberId === currentUser.id || memberEmail === currentUser.email
+    );
+  });
+
+  const creatorMember: ProjectMember = {
+    id: currentUser.id,
+    email: currentUser.email,
+    name: currentUser.name,
+    role: "admin",
+    user: {
+      id: currentUser.id,
+      email: currentUser.email,
+      name: currentUser.name,
+    },
+  };
+
+  if (matchingMemberIndex === -1) {
+    nextMembers.unshift(creatorMember);
+  } else {
+    nextMembers[matchingMemberIndex] = {
+      ...nextMembers[matchingMemberIndex],
+      ...creatorMember,
+      role: nextMembers[matchingMemberIndex].role ?? "admin",
+      user: nextMembers[matchingMemberIndex].user ?? creatorMember.user,
+    };
+  }
+
+  return {
+    ...project,
+    members: nextMembers,
+  };
+}
+
 // Modale de creation et d'edition de projet.
 export default function CreateProjectModal({
   isOpen,
   onClose,
+  currentUser,
   onCreated,
   projectToEdit,
+  canEditProject = true,
   onUpdated,
   onDeleted,
 }: CreateProjectModalProps) {
@@ -92,6 +141,35 @@ export default function CreateProjectModal({
   const isEditMode = Boolean(projectToEdit);
   const router = useRouter();
   const normalizedSearchQuery = searchQuery.trim();
+  const contributorListId = useId();
+  const derivedAccessLevel = projectToEdit
+    ? getProjectAccessLevel(projectToEdit, currentUser ?? null)
+    : "admin";
+  const canManageProject =
+    canEditProject || derivedAccessLevel === "admin";
+
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      projectToEdit
+    ) {
+      console.info("[project-delete-access]", {
+        profile: currentUser,
+        project: projectToEdit,
+        members: projectToEdit.members ?? [],
+        contributors: projectToEdit.contributors ?? [],
+        canEditProject,
+        derivedAccessLevel,
+        canDeleteProject: canManageProject,
+      });
+    }
+  }, [
+    canEditProject,
+    canManageProject,
+    currentUser,
+    derivedAccessLevel,
+    projectToEdit,
+  ]);
 
   function handleClose() {
     if (isDeleting) {
@@ -146,6 +224,13 @@ export default function CreateProjectModal({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (isEditMode && !canManageProject) {
+      setError(
+        "Seuls les administrateurs de ce projet peuvent modifier ses informations."
+      );
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
@@ -164,7 +249,7 @@ export default function CreateProjectModal({
       if (isEditMode) {
         onUpdated?.(response.data);
       } else {
-        onCreated?.(response.data);
+        onCreated?.(ensureCreatorAdmin(response.data, currentUser));
       }
 
       handleClose();
@@ -198,6 +283,13 @@ export default function CreateProjectModal({
       return;
     }
 
+    if (!canManageProject) {
+      setDeleteError(
+        "Seuls les administrateurs de ce projet peuvent supprimer ce projet."
+      );
+      return;
+    }
+
     setDeleteError("");
     setIsDeleting(true);
 
@@ -208,10 +300,6 @@ export default function CreateProjectModal({
       router.replace("/projects");
       router.refresh();
 
-      // Fallback navigateur pour quitter la page si le router reste bloqué.
-      if (typeof window !== "undefined") {
-        window.location.assign("/projects");
-      }
     } catch (error) {
       setDeleteError(
         error instanceof Error
@@ -282,6 +370,8 @@ export default function CreateProjectModal({
               onClick={() =>
                 setIsContributorPickerOpen((currentValue) => !currentValue)
               }
+              aria-expanded={isContributorPickerOpen}
+              aria-controls={contributorListId}
               aria-label="Choisir les contributeurs du projet"
               className="flex h-[52px] w-full items-center justify-between rounded-[6px] border border-[#d8deea] px-4 text-left text-[15px] text-[#5f6b7a]"
             >
@@ -311,7 +401,10 @@ export default function CreateProjectModal({
             )}
 
             {isContributorPickerOpen && (
-              <div className="rounded-[10px] border border-[#d8deea] bg-white p-3">
+              <div
+                id={contributorListId}
+                className="rounded-[10px] border border-[#d8deea] bg-white p-3"
+              >
                 <div className="flex h-[46px] items-center justify-between rounded-[8px] border border-[#d8deea] px-4 text-[#5f6b7a]">
                   <input
                     value={searchQuery}
@@ -359,15 +452,25 @@ export default function CreateProjectModal({
           </div>
 
           {error && (
-            <p className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600">
+            <p
+              role="alert"
+              className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600"
+            >
               {error}
+            </p>
+          )}
+
+          {isEditMode && !canManageProject && (
+            <p className="rounded-[8px] bg-[#f8fafc] px-4 py-3 text-[14px] text-[#778196]">
+              Seuls les administrateurs de ce projet peuvent modifier ses
+              informations.
             </p>
           )}
 
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="submit"
-              disabled={isSubmitDisabled}
+              disabled={isSubmitDisabled || (isEditMode && !canManageProject)}
               className="inline-flex h-[48px] items-center justify-center rounded-[12px] bg-[#dfe4ed] px-8 text-[16px] text-[#8b93a4] disabled:cursor-not-allowed enabled:bg-[#262323] enabled:text-white"
             >
               {isLoading
@@ -383,6 +486,7 @@ export default function CreateProjectModal({
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(true)}
+                disabled={!canManageProject}
                 className="inline-flex h-[48px] items-center justify-center rounded-[12px] border border-[#f3c7c7] px-6 text-[16px] text-[#b42318] transition hover:bg-[#fff5f5]"
               >
                 Supprimer le projet

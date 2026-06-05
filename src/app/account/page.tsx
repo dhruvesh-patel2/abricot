@@ -163,7 +163,10 @@ export default function AccountPage() {
           </div>
 
           {error && (
-            <p className="mt-8 rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600">
+            <p
+              role="alert"
+              className="mt-8 rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600"
+            >
               {error}
             </p>
           )}
@@ -270,7 +273,10 @@ export default function AccountPage() {
             </div>
 
             {notice && (
-              <p className="rounded-[8px] bg-[#fff7f1] px-4 py-3 text-[14px] text-[#d85d0a]">
+              <p
+                aria-live="polite"
+                className="rounded-[8px] bg-[#fff7f1] px-4 py-3 text-[14px] text-[#d85d0a]"
+              >
                 {notice}
               </p>
             )}

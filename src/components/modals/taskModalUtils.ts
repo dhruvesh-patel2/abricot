@@ -2,36 +2,24 @@ import type {
   ProjectMember,
   TaskAssignee,
 } from "@/types/api";
+import {
+  getMemberIdentity,
+  normalizeTaskStatus as normalizeSharedTaskStatus,
+} from "@/utils/projectUtils";
 
 // Statuts supportes par les modales de taches.
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 
-export function getMemberIdentity(member: ProjectMember) {
-  return {
-    id: member.user?.id ?? member.id ?? member.email ?? member.name ?? "member",
-    name: member.user?.name ?? member.name ?? "",
-    email: member.user?.email ?? member.email ?? "",
-  };
-}
+export { getMemberIdentity } from "@/utils/projectUtils";
 
 export function normalizeTaskStatus(status?: string): TaskStatus {
-  const value = (status ?? "").trim().toLowerCase();
+  const value = normalizeSharedTaskStatus(status);
 
-  if (
-    value === "en cours" ||
-    value === "en_cours" ||
-    value === "in progress" ||
-    value === "in_progress"
-  ) {
+  if (value === "en cours" || value === "en_cours" || value === "in progress" || value === "in_progress") {
     return "IN_PROGRESS";
   }
 
-  if (
-    value === "terminee" ||
-    value === "termine" ||
-    value === "done" ||
-    value === "completed"
-  ) {
+  if (value === "terminee" || value === "termine" || value === "done" || value === "completed") {
     return "DONE";
   }
 

@@ -14,10 +14,18 @@ export type User = {
   updatedAt: string;
 };
 
+export type ProjectUserReference = {
+  id?: string;
+  email?: string;
+  name?: string;
+};
+
 // Membre rattache a un projet avec son role.
 export type ProjectMember = {
   id?: string;
+  userId?: string;
   email?: string;
+  userEmail?: string;
   name?: string;
   role?: string;
   user?: {
@@ -64,8 +72,14 @@ export type Project = {
   name: string;
   description?: string;
   members?: ProjectMember[];
-  contributors?: string[];
+  contributors?: Array<string | ProjectMember>;
+  owner?: ProjectUserReference | string;
   tasks?: Task[];
+  ownerId?: string;
+  ownerEmail?: string;
+  createdBy?: ProjectUserReference | string;
+  createdById?: string;
+  createdByEmail?: string;
   createdAt?: string;
   updatedAt?: string;
 };

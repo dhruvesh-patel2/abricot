@@ -19,8 +19,16 @@ const FOCUSABLE_SELECTOR = [
   "input:not([disabled])",
   "select:not([disabled])",
   "textarea:not([disabled])",
+  "[contenteditable='true']",
   "a[href]",
   "[tabindex]:not([tabindex='-1'])",
+].join(", ");
+
+const EDITABLE_SELECTOR = [
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[contenteditable='true']",
 ].join(", ");
 
 const openModalStack: HTMLElement[] = [];
@@ -41,6 +49,18 @@ function getFocusableElements(container: HTMLElement) {
   return Array.from(
     container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
   ).filter(isVisible);
+}
+
+function getInitialFocusTarget(container: HTMLElement) {
+  const firstEditableElement = container.querySelector<HTMLElement>(
+    EDITABLE_SELECTOR
+  );
+
+  if (firstEditableElement && isVisible(firstEditableElement)) {
+    return firstEditableElement;
+  }
+
+  return getFocusableElements(container)[0] ?? container;
 }
 
 function getTopModal() {
@@ -80,7 +100,12 @@ export default function BaseModal({
 }: BaseModalProps) {
   const modalRef = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen || !modalRef.current) {
@@ -96,19 +121,20 @@ export default function BaseModal({
     openModalStack.push(modalElement);
     syncBackgroundInteractivity();
 
-    const focusableElements = getFocusableElements(modalElement);
-    const initialFocusTarget =
-      focusableElements[0] ?? modalElement;
-    initialFocusTarget.focus();
+    getInitialFocusTarget(modalElement).focus();
 
     function handleKeyDown(event: KeyboardEvent) {
       if (getTopModal() !== modalElement) {
         return;
       }
 
+      if (event.defaultPrevented || !modalElement.contains(event.target as Node)) {
+        return;
+      }
+
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -170,7 +196,7 @@ export default function BaseModal({
       fallbackTarget.focus();
     }
 
-    document.addEventListener("keydown", handleKeyDown);
+    modalElement.addEventListener("keydown", handleKeyDown, true);
     document.addEventListener("focusin", handleFocusIn);
 
     return () => {
@@ -181,7 +207,7 @@ export default function BaseModal({
       }
 
       syncBackgroundInteractivity();
-      document.removeEventListener("keydown", handleKeyDown);
+      modalElement.removeEventListener("keydown", handleKeyDown, true);
       document.removeEventListener("focusin", handleFocusIn);
 
       const restoreTarget = triggerRef.current;
@@ -190,7 +216,7 @@ export default function BaseModal({
         restoreTarget.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen || typeof document === "undefined") {
     return null;
@@ -211,7 +237,7 @@ export default function BaseModal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative z-10 w-full max-w-[600px] rounded-[18px] bg-white px-8 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.16)] sm:px-10 sm:py-10"
+        className="relative z-10 max-h-[calc(100vh-3rem)] w-full max-w-[600px] overflow-y-auto rounded-[18px] bg-white px-8 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.16)] sm:px-10 sm:py-10"
       >
         <div className="flex items-start justify-between gap-4">
           {titleNode ? (

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import DashboardFooter from "@/components/dashboard/Footer";
 import Header from "@/components/dashboard/Header";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
+import { getProjectAccessLevel } from "@/app/projects/[id]/helpers";
 import {
   extractProjects,
   extractTasks,
@@ -141,6 +142,13 @@ export default function ProjectsPage() {
                   ? 0
                   : Math.round((completedTasks / totalTasks) * 100);
               const members = getProjectMembers(project);
+              const projectAccessLevel = getProjectAccessLevel(project, profile);
+              const currentUserRoleLabel =
+                projectAccessLevel === "admin"
+                  ? "Administrateur"
+                  : projectAccessLevel === "contributor"
+                    ? "Contributeur"
+                    : null;
 
               return (
                 <Link
@@ -163,6 +171,11 @@ export default function ProjectsPage() {
 
                     <div className="mt-4 h-[7px] overflow-hidden rounded-full bg-[#eceff5]">
                       <div
+                        role="progressbar"
+                        aria-label={`Progression du projet ${project.name}`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={progress}
                         className="h-full rounded-full bg-[#d85d0a]"
                         style={{ width: `${progress}%` }}
                       />
@@ -179,13 +192,13 @@ export default function ProjectsPage() {
                     </p>
 
                     <div className="mt-4 flex flex-wrap items-center gap-1.5">
-                      {profile && (
+                      {profile && currentUserRoleLabel && (
                         <Fragment key={`profile-${project.id}`}>
                           <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-[#fde8db] px-2 text-[12px] text-[#222222]">
                             {getInitials(profile.name)}
                           </span>
                           <span className="inline-flex rounded-full bg-[#fde8db] px-4 py-1.5 text-[14px] text-[#8a3b00]">
-                            Propriétaire
+                            {currentUserRoleLabel}
                           </span>
                         </Fragment>
                       )}
@@ -211,6 +224,7 @@ export default function ProjectsPage() {
         <CreateProjectModal
           isOpen={isCreateProjectModalOpen}
           onClose={() => setIsCreateProjectModalOpen(false)}
+          currentUser={profile}
           onCreated={(project) =>
             setProjects((currentProjects) => [
               {

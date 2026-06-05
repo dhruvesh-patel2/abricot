@@ -7,6 +7,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 
 import { loginUser } from "@/services/authService";
+import { persistSessionToken } from "@/services/session";
 
 type LoginFormData = {
   email: string;
@@ -26,21 +27,49 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  function validateLoginForm() {
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!email || !password) {
+      return "Remplissez votre email et votre mot de passe.";
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return "Saisissez une adresse email valide.";
+    }
+
+    if (password.length < 8) {
+      return "Le mot de passe doit contenir au moins 8 caracteres.";
+    }
+
+    return "";
+  }
+
   // Soumission du formulaire de connexion.
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
 
-    setError("");
+    const validationError = validateLoginForm();
+
+    setError(validationError);
+
+    if (validationError) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       // Envoi des données de connexion au backend.
-      const response = await loginUser(formData);
+      const response = await loginUser({
+        email: formData.email.trim(),
+        password: formData.password,
+      });
 
-      // Sauvegarde temporaire du token utilisateur.
-      localStorage.setItem("token", response.data.token);
+      persistSessionToken(response.data.token);
 
       // Redirection après connexion réussie.
       router.push("/dashboard");
@@ -59,7 +88,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-white">
       <div className="flex min-h-screen flex-col lg:flex-row">
         {/* Bloc gauche : logo et formulaire de connexion */}
-        <section className="relative z-10 flex min-h-screen w-full justify-center bg-white px-8 py-10 sm:px-10 lg:w-[524px] lg:min-w-[524px] lg:px-14 lg:py-8">
+        <section className="relative z-10 flex min-h-screen w-full justify-center bg-white px-8 py-10 sm:px-10 lg:max-w-[524px] lg:basis-[524px] lg:px-14 lg:py-8">
           <div className="flex w-full max-w-[410px] flex-col">
             <Link
               href="/"
@@ -106,6 +135,7 @@ export default function LoginPage() {
                       }))
                     }
                     className="h-12 w-full rounded-sm border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#d85d0a] focus:ring-2 focus:ring-[#d85d0a]/20"
+                    minLength={8}
                     required
                   />
                 </div>
@@ -137,7 +167,10 @@ export default function LoginPage() {
 
                 {/* Message d'erreur affiché en cas d'échec */}
                 {error && (
-                  <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                  <p
+                    role="alert"
+                    className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600"
+                  >
                     {error}
                   </p>
                 )}

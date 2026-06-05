@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import {
   CalendarIcon,
@@ -27,6 +27,7 @@ type CreateTaskModalProps = {
   projectId: string;
   members: ProjectMember[];
   currentUser?: User | null;
+  canCreate?: boolean;
   onCreated?: (task: Task) => void;
 };
 
@@ -44,6 +45,7 @@ export default function CreateTaskModal({
   projectId,
   members,
   currentUser,
+  canCreate = true,
   onCreated,
 }: CreateTaskModalProps) {
   const [formState, setFormState] = useState<FormState>({
@@ -56,6 +58,8 @@ export default function CreateTaskModal({
   const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const assigneeListId = useId();
+  const statusGroupId = useId();
 
   function resetModalState() {
     setFormState({
@@ -86,6 +90,13 @@ export default function CreateTaskModal({
   // l'utilisateur courant pour eviter de creer une tache "vide".
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canCreate) {
+      setError(
+        "Seuls les contributeurs de ce projet peuvent créer une tâche."
+      );
+      return;
+    }
 
     setError("");
     setIsLoading(true);
@@ -209,6 +220,8 @@ export default function CreateTaskModal({
             onClick={() =>
               setIsAssigneePickerOpen((currentValue) => !currentValue)
             }
+            aria-expanded={isAssigneePickerOpen}
+            aria-controls={assigneeListId}
             className="flex h-[52px] w-full items-center justify-between rounded-[6px] border border-[#d8deea] px-4 text-left text-[15px] text-[#778196]"
           >
             <span>
@@ -220,7 +233,10 @@ export default function CreateTaskModal({
           </button>
 
           {isAssigneePickerOpen && (
-            <div className="rounded-[10px] border border-[#d8deea] bg-white p-3">
+            <div
+              id={assigneeListId}
+              className="rounded-[10px] border border-[#d8deea] bg-white p-3"
+            >
               <div className="space-y-2">
                 {members.map((member) => {
                   const identity = getMemberIdentity(member);
@@ -256,11 +272,20 @@ export default function CreateTaskModal({
 
         <div className="space-y-3">
           <label className="block text-[16px] text-[#222222]">Statut :</label>
-          <div className="flex flex-wrap gap-3">
+          <div
+            role="radiogroup"
+            aria-labelledby={statusGroupId}
+            className="flex flex-wrap gap-3"
+          >
+            <span id={statusGroupId} className="sr-only">
+              Statut
+            </span>
             {taskStatusOptions.map((statusOption) => (
               <button
                 key={statusOption.value}
                 type="button"
+                role="radio"
+                aria-checked={formState.status === statusOption.value}
                 onClick={() =>
                   setFormState((currentState) => ({
                     ...currentState,
@@ -280,14 +305,23 @@ export default function CreateTaskModal({
         </div>
 
         {error && (
-          <p className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600">
+          <p
+            role="alert"
+            className="rounded-[8px] bg-red-50 px-4 py-3 text-[14px] text-red-600"
+          >
             {error}
+          </p>
+        )}
+
+        {!canCreate && (
+          <p className="rounded-[8px] bg-[#f8fafc] px-4 py-3 text-[14px] text-[#778196]">
+            Seuls les contributeurs de ce projet peuvent créer une tâche.
           </p>
         )}
 
         <button
           type="submit"
-          disabled={isSubmitDisabled}
+          disabled={isSubmitDisabled || !canCreate}
           className="inline-flex h-[48px] items-center justify-center rounded-[12px] bg-[#dfe4ed] px-8 text-[16px] text-[#8b93a4] disabled:cursor-not-allowed enabled:bg-[#262323] enabled:text-white"
         >
           {isLoading ? "Création..." : "+ Ajouter une tâche"}
