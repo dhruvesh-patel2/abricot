@@ -176,7 +176,7 @@ export default function CreateTaskAiModal({
     <BaseModal
       isOpen={isOpen}
       onClose={handleClose}
-      title=""
+      title="Créer une tâche avec IA"
       titleNode={titleNode}
     >
       <div className="flex min-h-[620px] flex-col">

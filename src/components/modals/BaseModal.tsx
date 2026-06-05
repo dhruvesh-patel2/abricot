@@ -1,7 +1,8 @@
 "use client";
 
 import type { PropsWithChildren, ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 
 import { CloseIcon } from "@/components/dashboard/icons";
 
@@ -13,6 +14,60 @@ type BaseModalProps = PropsWithChildren<{
   titleNode?: ReactNode;
 }>;
 
+const FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "a[href]",
+  "[tabindex]:not([tabindex='-1'])",
+].join(", ");
+
+const openModalStack: HTMLElement[] = [];
+let savedBodyOverflow = "";
+
+function isVisible(element: HTMLElement) {
+  return (
+    !element.hasAttribute("hidden") &&
+    element.getAttribute("aria-hidden") !== "true" &&
+    element.tabIndex !== -1 &&
+    (element.offsetWidth > 0 ||
+      element.offsetHeight > 0 ||
+      element.getClientRects().length > 0)
+  );
+}
+
+function getFocusableElements(container: HTMLElement) {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+  ).filter(isVisible);
+}
+
+function getTopModal() {
+  return openModalStack[openModalStack.length - 1] ?? null;
+}
+
+function syncBackgroundInteractivity() {
+  const appRoot = document.getElementById("app-root");
+
+  if (!appRoot) {
+    return;
+  }
+
+  if (openModalStack.length > 0) {
+    savedBodyOverflow ||= document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    appRoot.setAttribute("aria-hidden", "true");
+    appRoot.inert = true;
+    return;
+  }
+
+  document.body.style.overflow = savedBodyOverflow;
+  savedBodyOverflow = "";
+  appRoot.removeAttribute("aria-hidden");
+  appRoot.inert = false;
+}
+
 // Structure commune des modales :
 // overlay, fermeture clavier et bouton fermer.
 export default function BaseModal({
@@ -23,33 +78,125 @@ export default function BaseModal({
   titleNode,
   children,
 }: BaseModalProps) {
+  const modalRef = useRef<HTMLElement | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !modalRef.current) {
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const modalElement = modalRef.current;
+    triggerRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
 
-    function handleEscape(event: KeyboardEvent) {
+    openModalStack.push(modalElement);
+    syncBackgroundInteractivity();
+
+    const focusableElements = getFocusableElements(modalElement);
+    const initialFocusTarget =
+      focusableElements[0] ?? modalElement;
+    initialFocusTarget.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (getTopModal() !== modalElement) {
+        return;
+      }
+
       if (event.key === "Escape") {
+        event.preventDefault();
         onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const updatedFocusableElements = getFocusableElements(modalElement);
+
+      if (updatedFocusableElements.length === 0) {
+        event.preventDefault();
+        modalElement.focus();
+        return;
+      }
+
+      const firstElement = updatedFocusableElements[0];
+      const lastElement =
+        updatedFocusableElements[updatedFocusableElements.length - 1];
+      const activeElement =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+
+      if (!activeElement || !modalElement.contains(activeElement)) {
+        event.preventDefault();
+        firstElement.focus();
+        return;
+      }
+
+      if (event.shiftKey && activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+        return;
+      }
+
+      if (!event.shiftKey && activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
       }
     }
 
-    window.addEventListener("keydown", handleEscape);
+    function handleFocusIn(event: FocusEvent) {
+      if (getTopModal() !== modalElement) {
+        return;
+      }
+
+      const target =
+        event.target instanceof HTMLElement
+          ? event.target
+          : null;
+
+      if (target && modalElement.contains(target)) {
+        return;
+      }
+
+      const updatedFocusableElements = getFocusableElements(modalElement);
+      const fallbackTarget =
+        updatedFocusableElements[0] ?? modalElement;
+      fallbackTarget.focus();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("focusin", handleFocusIn);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleEscape);
+      const modalIndex = openModalStack.lastIndexOf(modalElement);
+
+      if (modalIndex >= 0) {
+        openModalStack.splice(modalIndex, 1);
+      }
+
+      syncBackgroundInteractivity();
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("focusin", handleFocusIn);
+
+      const restoreTarget = triggerRef.current;
+
+      if (restoreTarget && document.contains(restoreTarget)) {
+        restoreTarget.focus();
+      }
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) {
+  if (!isOpen || typeof document === "undefined") {
     return null;
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6">
       {/* Zone cliquable pour fermer la modale sans viser le bouton fermer. */}
       <div
@@ -58,15 +205,31 @@ export default function BaseModal({
         aria-hidden="true"
       />
 
-      <section className="relative z-10 w-full max-w-[600px] rounded-[18px] bg-white px-8 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.16)] sm:px-10 sm:py-10">
+      <section
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-[600px] rounded-[18px] bg-white px-8 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.16)] sm:px-10 sm:py-10"
+      >
         <div className="flex items-start justify-between gap-4">
           {titleNode ? (
             <div className="pt-10">{titleNode}</div>
           ) : (
-            <h2 className="pt-10 text-[28px] font-medium text-[#222222]">
+            <h2
+              id={titleId}
+              className="pt-10 text-[28px] font-medium text-[#222222]"
+            >
               {title}
             </h2>
           )}
+
+          {titleNode ? (
+            <span id={titleId} className="sr-only">
+              {title}
+            </span>
+          ) : null}
 
           <div className="flex items-center gap-3">
             {headerAction}
@@ -83,6 +246,7 @@ export default function BaseModal({
 
         <div className="mt-10">{children}</div>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
