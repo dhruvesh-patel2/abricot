@@ -20,6 +20,7 @@ type AccountFormState = {
   confirmPassword: string;
 };
 
+// Transforme les donnees du profil en champs simples pour le formulaire.
 function buildAccountFormState(user: User | null): AccountFormState {
   const fullName = user?.name?.trim() ?? "";
   const nameParts = fullName.split(/\s+/).filter(Boolean);
@@ -48,6 +49,7 @@ function buildAccountFormState(user: User | null): AccountFormState {
   };
 }
 
+// Page "Mon compte" pour modifier profil et mot de passe.
 export default function AccountPage() {
   const [profile, setProfile] = useState<User | null>(null);
   const [formState, setFormState] = useState<AccountFormState>({
@@ -86,6 +88,8 @@ export default function AccountPage() {
     void loadProfile();
   }, []);
 
+  // On met a jour le profil, puis le mot de passe seulement si
+  // l'utilisateur a rempli les champs prevus pour cela.
   async function handleSave() {
     setError("");
     setNotice("");

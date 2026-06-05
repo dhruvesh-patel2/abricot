@@ -6,6 +6,7 @@ type TaskSearchBarProps = {
   placeholder?: string;
 };
 
+// Champ de recherche reutilisable pour filtrer les taches.
 export default function TaskSearchBar({
   value,
   onChange,

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import Footer from "@/components/dashboard/Footer";
 
+// Page 404 simple dans le style global du site.
 export default function NotFoundPage() {
   return (
     <main className="flex min-h-screen flex-col bg-[#fafafa] text-[#222222]">

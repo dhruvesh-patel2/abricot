@@ -11,6 +11,7 @@ type DeleteProjectConfirmModalProps = {
   error?: string;
 };
 
+// Modale de confirmation avant suppression definitive d'un projet.
 export default function DeleteProjectConfirmModal({
   isOpen,
   onClose,

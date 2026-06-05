@@ -1,68 +1,22 @@
 import type {
   Project,
-  ProjectMember,
   Task,
   User,
 } from "@/types/api";
 
-export function extractProjects(data: unknown): Project[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
+export {
+  extractProjects,
+  extractTasks,
+  getInitials,
+  getMemberIdentity,
+  getProjectMembers,
+  normalizeTaskStatus,
+} from "@/app/projects/utils";
 
-  if (
-    data &&
-    typeof data === "object" &&
-    "projects" in data &&
-    Array.isArray(data.projects)
-  ) {
-    return data.projects as Project[];
-  }
-
-  return [];
-}
-
-export function extractTasks(data: unknown): Task[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "tasks" in data &&
-    Array.isArray(data.tasks)
-  ) {
-    return data.tasks as Task[];
-  }
-
-  return [];
-}
-
-export function getInitials(value?: string) {
-  if (!value) {
-    return "NA";
-  }
-
-  return value
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-export function getProjectMembers(project: Project | null): ProjectMember[] {
-  return project?.members ?? [];
-}
-
-export function getMemberIdentity(member: ProjectMember) {
-  return {
-    id: member.user?.id ?? member.id ?? member.email ?? member.name ?? "member",
-    name: member.user?.name ?? member.name ?? "",
-    email: member.user?.email ?? member.email ?? "",
-  };
-}
+import {
+  getMemberIdentity,
+  normalizeTaskStatus,
+} from "@/app/projects/utils";
 
 function normalizeRole(role?: string) {
   return (role ?? "")
@@ -156,10 +110,4 @@ export function formatStatus(status?: string) {
     label: "À faire",
     className: "bg-[#ffe1e1] text-[#b42318]",
   };
-}
-
-export function normalizeTaskStatus(status?: string) {
-  return (status ?? "")
-    .trim()
-    .toLowerCase();
 }

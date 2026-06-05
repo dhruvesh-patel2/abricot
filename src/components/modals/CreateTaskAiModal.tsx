@@ -25,6 +25,7 @@ type CreateTaskAiModalProps = {
   onCreated?: (tasks: Task[]) => void;
 };
 
+// Retourne une date simple pour pre-remplir les echeances generees.
 function getTodayPlusDays(days: number) {
   const date = new Date();
   date.setDate(date.getDate() + days);
@@ -32,6 +33,8 @@ function getTodayPlusDays(days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+// Construit des brouillons de taches a partir du texte saisi.
+// Ici on reste volontairement simple pour garder une IA "locale" lisible.
 function buildDraftTasks(prompt: string): DraftTask[] {
   const cleanedPrompt = prompt.trim();
   const chunks = cleanedPrompt
@@ -67,6 +70,7 @@ function buildDraftTasks(prompt: string): DraftTask[] {
   ];
 }
 
+// Modale de creation assistee par IA.
 export default function CreateTaskAiModal({
   isOpen,
   onClose,

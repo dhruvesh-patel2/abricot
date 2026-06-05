@@ -22,6 +22,7 @@ import type {
   User,
 } from "@/types/api";
 
+// Uniformise la lecture des taches si le backend les encapsule.
 function extractTasks(data: unknown): Task[] {
   if (Array.isArray(data)) {
     return data;
@@ -39,6 +40,7 @@ function extractTasks(data: unknown): Task[] {
   return [];
 }
 
+// Uniformise la lecture des projets renvoyes par le backend.
 function extractProjects(data: unknown): Project[] {
   if (Array.isArray(data)) {
     return data;
@@ -56,6 +58,7 @@ function extractProjects(data: unknown): Project[] {
   return [];
 }
 
+// Chaque tache doit connaitre son projet pour les liens et mises a jour.
 function attachProjectIdsToTasks(projects: Project[]): Project[] {
   return projects.map((project) => ({
     ...project,
@@ -66,6 +69,7 @@ function attachProjectIdsToTasks(projects: Project[]): Project[] {
   }));
 }
 
+// Met a jour une tache dans l'arbre des projets du dashboard.
 function updateTaskInProjects(
   projects: Project[],
   taskId: string,
@@ -79,6 +83,7 @@ function updateTaskInProjects(
   }));
 }
 
+// Met a jour une tache dans la liste des taches assignees.
 function updateTaskInList(
   tasks: Task[],
   taskId: string,
@@ -87,6 +92,7 @@ function updateTaskInList(
   return tasks.map((task) => (task.id === taskId ? updater(task) : task));
 }
 
+// Page principale du dashboard personnel.
 export default function DashboardPage() {
   const [view, setView] = useState<DashboardView>("list");
   const [profile, setProfile] = useState<User | null>(null);
@@ -135,6 +141,8 @@ export default function DashboardPage() {
     void loadDashboardData();
   }, []);
 
+  // Mise a jour optimiste :
+  // on change l'UI tout de suite, puis on confirme avec l'API.
   async function handleTaskStatusChange(
     task: Task,
     nextStatus: string

@@ -3,6 +3,7 @@ import type {
   TaskAssignee,
 } from "@/types/api";
 
+// Statuts supportes par les modales de taches.
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 
 export function getMemberIdentity(member: ProjectMember) {

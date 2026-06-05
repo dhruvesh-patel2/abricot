@@ -64,6 +64,7 @@ function getInitialSelectedUsers(projectToEdit?: Project | null): User[] {
     .filter((user): user is User => user !== null);
 }
 
+// Modale de creation et d'edition de projet.
 export default function CreateProjectModal({
   isOpen,
   onClose,
@@ -90,6 +91,7 @@ export default function CreateProjectModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const isEditMode = Boolean(projectToEdit);
   const router = useRouter();
+  const normalizedSearchQuery = searchQuery.trim();
 
   function handleClose() {
     if (isDeleting) {
@@ -103,7 +105,11 @@ export default function CreateProjectModal({
 
   useEffect(() => {
     async function loadUsers() {
-      if (!isOpen || !isContributorPickerOpen || searchQuery.trim().length < 2) {
+      if (
+        !isOpen ||
+        !isContributorPickerOpen ||
+        normalizedSearchQuery.length < 2
+      ) {
         setResults([]);
         return;
       }
@@ -111,7 +117,7 @@ export default function CreateProjectModal({
       setIsSearching(true);
 
       try {
-        const response = await searchUsers(searchQuery.trim());
+        const response = await searchUsers(normalizedSearchQuery);
         setResults(response.data.users);
       } catch {
         setResults([]);
@@ -121,9 +127,9 @@ export default function CreateProjectModal({
     }
 
     void loadUsers();
-  }, [isContributorPickerOpen, isOpen, searchQuery]);
+  }, [isContributorPickerOpen, isOpen, normalizedSearchQuery]);
 
-  const availableResults = useMemo(() => {
+  const selectableUsers = useMemo(() => {
     return results.filter(
       (user) =>
         !selectedUsers.some(
@@ -202,6 +208,7 @@ export default function CreateProjectModal({
       router.replace("/projects");
       router.refresh();
 
+      // Fallback navigateur pour quitter la page si le router reste bloqué.
       if (typeof window !== "undefined") {
         window.location.assign("/projects");
       }
@@ -321,8 +328,8 @@ export default function CreateProjectModal({
                     <p className="px-2 py-2 text-[14px] text-[#778196]">
                       Recherche...
                     </p>
-                  ) : availableResults.length > 0 ? (
-                    availableResults.map((user) => (
+                  ) : selectableUsers.length > 0 ? (
+                    selectableUsers.map((user) => (
                       <button
                         key={user.id}
                         type="button"
@@ -341,7 +348,7 @@ export default function CreateProjectModal({
                     ))
                   ) : (
                     <p className="px-2 py-2 text-[14px] text-[#778196]">
-                      {searchQuery.trim().length < 2
+                      {normalizedSearchQuery.length < 2
                         ? "Tape au moins 2 caracteres."
                         : "Aucun utilisateur trouve."}
                     </p>

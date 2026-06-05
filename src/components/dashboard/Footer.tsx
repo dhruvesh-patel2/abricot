@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+// Footer utilise sur les pages principales de l'espace connecte.
 export default function Footer() {
   return (
     <footer className="mt-16 bg-white">

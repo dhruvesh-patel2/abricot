@@ -36,6 +36,7 @@ type EditTaskModalProps = {
   onDeleted?: (taskId: string) => void;
 };
 
+// Modale simple pour modifier ou supprimer une tache existante.
 export default function EditTaskModal({
   isOpen,
   onClose,
@@ -81,6 +82,7 @@ export default function EditTaskModal({
     );
   }
 
+  // On n'envoie que les assignees encore valides dans les membres du projet.
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 

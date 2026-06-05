@@ -6,6 +6,7 @@ import { useDeferredValue, useEffect, useState } from "react";
 import DashboardFooter from "@/components/dashboard/Footer";
 import Header from "@/components/dashboard/Header";
 import TaskSearchBar from "@/components/dashboard/TaskSearchBar";
+import { matchesTaskStatusFilter } from "@/app/projects/utils";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import CreateTaskAiModal from "@/components/modals/CreateTaskAiModal";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
@@ -31,7 +32,6 @@ import {
   getProjectAccessLevel,
   getProjectMembers,
   isTaskAssignedToUser,
-  normalizeTaskStatus,
 } from "@/app/projects/[id]/helpers";
 import type {
   Project,
@@ -39,6 +39,7 @@ import type {
   User,
 } from "@/types/api";
 
+// Page detail d'un projet avec ses taches et ses actions.
 export default function ProjectDetailsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -112,6 +113,9 @@ export default function ProjectDetailsPage() {
   const normalizedTaskSearchQuery = deferredTaskSearchQuery
     .trim()
     .toLowerCase();
+
+  // La liste affiche d'abord les resultats de recherche,
+  // puis applique le filtre de statut choisi.
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch = !normalizedTaskSearchQuery
       ? true
@@ -121,25 +125,7 @@ export default function ProjectDetailsPage() {
           .toLowerCase()
           .includes(normalizedTaskSearchQuery);
 
-    const normalizedStatus = normalizeTaskStatus(task.status);
-    const matchesStatus =
-      statusFilter === "all"
-        ? true
-        : statusFilter === "TODO"
-          ? normalizedStatus === "a faire" ||
-            normalizedStatus === "a_faire" ||
-            normalizedStatus === "todo"
-          : statusFilter === "IN_PROGRESS"
-            ? normalizedStatus === "en cours" ||
-              normalizedStatus === "en_cours" ||
-              normalizedStatus === "in progress" ||
-              normalizedStatus === "in_progress"
-            : normalizedStatus === "terminee" ||
-              normalizedStatus === "termine" ||
-              normalizedStatus === "done" ||
-              normalizedStatus === "completed";
-
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesTaskStatusFilter(task.status, statusFilter);
   });
 
   return (

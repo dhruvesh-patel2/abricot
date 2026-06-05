@@ -37,6 +37,7 @@ type FormState = {
   status: TaskStatus;
 };
 
+// Modale de creation de tache.
 export default function CreateTaskModal({
   isOpen,
   onClose,
@@ -81,6 +82,8 @@ export default function CreateTaskModal({
     );
   }
 
+  // Si aucun assigne n'est choisi, on essaye d'assigner automatiquement
+  // l'utilisateur courant pour eviter de creer une tache "vide".
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 

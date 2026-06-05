@@ -7,6 +7,14 @@ import { useEffect, useState } from "react";
 import DashboardFooter from "@/components/dashboard/Footer";
 import Header from "@/components/dashboard/Header";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
+import {
+  extractProjects,
+  extractTasks,
+  getInitials,
+  getMemberIdentity,
+  getProjectMembers,
+  isDoneTask,
+} from "@/app/projects/utils";
 import { getProfile } from "@/services/authService";
 import {
   getProjectTasks,
@@ -14,7 +22,6 @@ import {
 } from "@/services/projectService";
 import type {
   Project,
-  ProjectMember,
   Task,
   User,
 } from "@/types/api";
@@ -23,76 +30,7 @@ type ProjectWithTasks = Project & {
   tasks: Task[];
 };
 
-function extractProjects(data: unknown): Project[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "projects" in data &&
-    Array.isArray(data.projects)
-  ) {
-    return data.projects as Project[];
-  }
-
-  return [];
-}
-
-function extractTasks(data: unknown): Task[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "tasks" in data &&
-    Array.isArray(data.tasks)
-  ) {
-    return data.tasks as Task[];
-  }
-
-  return [];
-}
-
-function isDoneTask(task: Task) {
-  const status = (task.status ?? "").trim().toLowerCase();
-
-  return (
-    status === "done" ||
-    status === "completed" ||
-    status === "termine" ||
-    status === "terminee"
-  );
-}
-
-function getInitials(value?: string) {
-  if (!value) {
-    return "NA";
-  }
-
-  return value
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-function getProjectMembers(project: Project): ProjectMember[] {
-  return project.members ?? [];
-}
-
-function getMemberIdentity(member: ProjectMember) {
-  return {
-    id: member.user?.id ?? member.id ?? member.email ?? member.name ?? "member",
-    name: member.user?.name ?? member.name ?? "",
-    email: member.user?.email ?? member.email ?? "",
-  };
-}
-
+// Page liste des projets avec progression et membres visibles.
 export default function ProjectsPage() {
   const [profile, setProfile] = useState<User | null>(null);
   const [projects, setProjects] = useState<ProjectWithTasks[]>([]);

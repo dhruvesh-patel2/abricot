@@ -13,6 +13,8 @@ type BaseModalProps = PropsWithChildren<{
   titleNode?: ReactNode;
 }>;
 
+// Structure commune des modales :
+// overlay, fermeture clavier et bouton fermer.
 export default function BaseModal({
   isOpen,
   title,
@@ -49,6 +51,7 @@ export default function BaseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6">
+      {/* Zone cliquable pour fermer la modale sans viser le bouton fermer. */}
       <div
         className="absolute inset-0"
         onClick={onClose}

@@ -17,6 +17,7 @@ type ListViewProps = {
   deferredSearchQuery: string;
 };
 
+// Traduit le statut brut du backend en badge lisible dans la vue liste.
 function formatStatus(status?: string) {
   const value = (status ?? "").trim().toLowerCase();
 
@@ -37,6 +38,7 @@ function formatStatus(status?: string) {
   };
 }
 
+// Vue liste du dashboard personnel.
 export default function ListView({
   tasks,
   isLoading,
@@ -48,6 +50,7 @@ export default function ListView({
     .trim()
     .toLowerCase();
 
+  // La recherche se fait sur le titre et la description.
   const filteredTasks = tasks.filter((task) => {
     if (!normalizedSearchQuery) {
       return true;

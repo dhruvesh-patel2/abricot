@@ -28,6 +28,8 @@ type KanbanColumnProps = {
   onDragEndTask: () => void;
 };
 
+// Une colonne correspond a un seul statut du kanban.
+// Elle gere aussi la zone de drop pour le drag and drop.
 function KanbanColumn({
   title,
   tasks,
@@ -169,12 +171,14 @@ type KanbanViewProps = {
   onTaskStatusChange: (task: Task, nextStatus: string) => Promise<void>;
 };
 
+// Normalise les statuts pour comparer les variations backend/frontend.
 function normalizeStatus(status?: string) {
   return (status ?? "")
     .trim()
     .toLowerCase();
 }
 
+// Associe chaque libelle ou variation backend a une colonne kanban.
 function getColumnStatusValue(status?: string) {
   const value = normalizeStatus(status);
 
@@ -199,6 +203,7 @@ function getColumnStatusValue(status?: string) {
   return "TODO";
 }
 
+// Vue kanban du dashboard personnel.
 export default function KanbanView({
   projects,
   isLoading,

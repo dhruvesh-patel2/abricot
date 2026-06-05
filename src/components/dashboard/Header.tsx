@@ -16,6 +16,7 @@ type HeaderProps = {
   activePage?: "dashboard" | "projects" | "account";
 };
 
+// Header principal de l'espace connecte.
 export default function Header({
   user,
   activePage = "dashboard",
@@ -24,6 +25,7 @@ export default function Header({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // On derive les initiales pour l'avatar texte.
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -51,6 +53,7 @@ export default function Header({
     };
   }, [isMenuOpen]);
 
+  // La deconnexion nettoie le token local avant de renvoyer au login.
   function handleLogout() {
     localStorage.removeItem("token");
     setIsMenuOpen(false);
