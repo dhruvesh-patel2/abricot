@@ -23,6 +23,10 @@ import type {
   ProjectMember,
   Task,
 } from "@/types/api";
+import {
+  getTomorrowDateString,
+  isFutureDate,
+} from "@/utils/dateUtils";
 
 type EditTaskModalProps = {
   isOpen: boolean;
@@ -92,6 +96,11 @@ export default function EditTaskModal({
       setError(
         "Seuls les contributeurs de ce projet peuvent modifier cette tâche."
       );
+      return;
+    }
+
+    if (!isFutureDate(dueDate)) {
+      setError("L'échéance doit être une date future.");
       return;
     }
 
@@ -185,6 +194,7 @@ export default function EditTaskModal({
           <label className="flex h-[52px] items-center justify-between rounded-[6px] border border-[#d8deea] px-4 text-[#778196]">
             <input
               type="date"
+              min={getTomorrowDateString()}
               value={dueDate}
               disabled={!canEdit}
               onChange={(event) => setDueDate(event.target.value)}

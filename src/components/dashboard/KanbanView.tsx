@@ -11,6 +11,7 @@ import type {
   Project,
   Task,
 } from "@/types/api";
+import { formatTaskDueDate } from "@/utils/dateUtils";
 
 type KanbanColumnProps = {
   title: string;
@@ -131,7 +132,7 @@ function KanbanColumn({
                   <span className="text-[#5f6b7a]">|</span>
                   <span className="inline-flex items-center gap-1.5">
                     <TaskCalendarIcon />
-                    <span>9 mars</span>
+                    <span>{formatTaskDueDate(task.dueDate)}</span>
                   </span>
                   <span className="text-[#5f6b7a]">|</span>
                   <span className="inline-flex items-center gap-1.5">

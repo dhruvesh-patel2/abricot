@@ -26,6 +26,7 @@ import {
   getMemberIdentity,
 } from "@/app/projects/[id]/helpers";
 import type { Task } from "@/types/api";
+import { formatTaskDueDate } from "@/utils/dateUtils";
 
 export default function ProjectDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -303,7 +304,7 @@ export default function ProjectDetailsPage() {
                         <p className="mt-7 flex items-center gap-2 text-[15px] text-[#5f6b7a]">
                           <span>Échéance :</span>
                           <CalendarIcon />
-                          <span>9 mars</span>
+                          <span>{formatTaskDueDate(task.dueDate)}</span>
                         </p>
 
                         <div className="mt-6 flex flex-wrap items-center gap-2 text-[15px] text-[#5f6b7a]">

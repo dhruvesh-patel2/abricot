@@ -8,6 +8,7 @@ import {
   TaskFolderIcon,
 } from "@/components/dashboard/icons";
 import type { Task } from "@/types/api";
+import { formatTaskDueDate } from "@/utils/dateUtils";
 
 type ListViewProps = {
   tasks: Task[];
@@ -130,7 +131,7 @@ export default function ListView({
                       <span className="text-[#5f6b7a]">|</span>
                       <span className="inline-flex items-center gap-2">
                         <TaskCalendarIcon />
-                        <span>9 mars</span>
+                        <span>{formatTaskDueDate(task.dueDate)}</span>
                       </span>
                       <span className="text-[#5f6b7a]">|</span>
                       <span className="inline-flex items-center gap-2">

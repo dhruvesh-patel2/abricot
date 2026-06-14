@@ -90,10 +90,10 @@ export default function ProjectsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#fafafa] text-[#222222]">
+    <main className="flex min-h-screen flex-col bg-[#fafafa] text-[#222222]">
       <Header user={profile} activePage="projects" />
 
-      <div className="mx-auto max-w-[1440px] px-6 pb-8 pt-10 sm:px-8 lg:px-10 lg:pt-20">
+      <div className="mx-auto w-full max-w-[1440px] px-6 pb-8 pt-10 sm:px-8 lg:px-10 lg:pt-20">
         <section className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-[34px] font-medium tracking-[-0.02em] text-[#222222]">
@@ -237,7 +237,7 @@ export default function ProjectsPage() {
         />
       )}
 
-      <DashboardFooter />
+      <DashboardFooter className="mt-auto" />
     </main>
   );
 }

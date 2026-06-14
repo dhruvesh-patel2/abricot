@@ -157,7 +157,7 @@ export default function AccountPage() {
             <h1 className="text-[22px] font-medium text-[#222222]">
               Mon compte
             </h1>
-            <p className="mt-2 text-[16px] text-[#778196]">
+            <p className="mt-2 text-[16px] text-[#5f6b85]">
               {profile?.name ?? "Utilisateur"}
             </p>
           </div>
@@ -173,8 +173,16 @@ export default function AccountPage() {
 
           <div className="mt-10 space-y-7">
             <div className="space-y-2">
-              <label className="block text-[16px] text-[#222222]">Nom</label>
+              <label
+                htmlFor="account-last-name"
+                className="block text-[16px] text-[#222222]"
+              >
+                Nom
+              </label>
               <input
+                id="account-last-name"
+                name="lastName"
+                autoComplete="family-name"
                 value={formState.lastName}
                 disabled={isLoading}
                 onChange={(event) =>
@@ -188,8 +196,16 @@ export default function AccountPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[16px] text-[#222222]">Prénom</label>
+              <label
+                htmlFor="account-first-name"
+                className="block text-[16px] text-[#222222]"
+              >
+                Prénom
+              </label>
               <input
+                id="account-first-name"
+                name="firstName"
+                autoComplete="given-name"
                 value={formState.firstName}
                 disabled={isLoading}
                 onChange={(event) =>
@@ -203,8 +219,16 @@ export default function AccountPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[16px] text-[#222222]">Email</label>
+              <label
+                htmlFor="account-email"
+                className="block text-[16px] text-[#222222]"
+              >
+                Email
+              </label>
               <input
+                id="account-email"
+                name="email"
+                autoComplete="email"
                 type="email"
                 value={formState.email}
                 disabled={isLoading}
@@ -219,10 +243,16 @@ export default function AccountPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[16px] text-[#222222]">
+              <label
+                htmlFor="account-current-password"
+                className="block text-[16px] text-[#222222]"
+              >
                 Mot de passe actuel
               </label>
               <input
+                id="account-current-password"
+                name="currentPassword"
+                autoComplete="current-password"
                 type="password"
                 value={formState.currentPassword}
                 disabled={isLoading}
@@ -237,10 +267,16 @@ export default function AccountPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[16px] text-[#222222]">
+              <label
+                htmlFor="account-new-password"
+                className="block text-[16px] text-[#222222]"
+              >
                 Nouveau mot de passe
               </label>
               <input
+                id="account-new-password"
+                name="newPassword"
+                autoComplete="new-password"
                 type="password"
                 value={formState.newPassword}
                 disabled={isLoading}
@@ -255,10 +291,16 @@ export default function AccountPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[16px] text-[#222222]">
+              <label
+                htmlFor="account-confirm-password"
+                className="block text-[16px] text-[#222222]"
+              >
                 Confirmer le mot de passe
               </label>
               <input
+                id="account-confirm-password"
+                name="confirmPassword"
+                autoComplete="new-password"
                 type="password"
                 value={formState.confirmPassword}
                 disabled={isLoading}

@@ -170,7 +170,7 @@ export default function Header({
             aria-label="Ouvrir le menu du profil"
             className={`flex h-16 w-16 items-center justify-center rounded-full text-xl font-normal ${
               activePage === "account" || isMenuOpen
-                ? "bg-[#d85d0a] text-white"
+                ? "bg-[#d85d0a] text-[#1f1308]"
                 : "bg-[#fde8db] text-[#8a3b00]"
             }`}
           >

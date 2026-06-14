@@ -1,9 +1,13 @@
 import Image from "next/image";
 
+type FooterProps = {
+  className?: string;
+};
+
 // Footer utilise sur les pages principales de l'espace connecte.
-export default function Footer() {
+export default function Footer({ className = "mt-16" }: FooterProps) {
   return (
-    <footer className="mt-16 bg-white">
+    <footer className={`bg-white ${className}`}>
       <div className="mx-auto flex max-w-[1440px] items-center justify-between px-8 py-7">
         <Image
           src="/img/logo.png"
