@@ -122,13 +122,14 @@ export default function CreateProjectModal({
   onUpdated,
   onDeleted,
 }: CreateProjectModalProps) {
-  const [formState, setFormState] = useState<FormState>(
+  const [formState, setFormState] = useState<FormState>( // State du formulaire
     getInitialFormState(projectToEdit)
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isContributorPickerOpen, setIsContributorPickerOpen] =
     useState(false);
   const [results, setResults] = useState<User[]>([]);
+  // State des contributeurs sélectionnés
   const [selectedUsers, setSelectedUsers] = useState<User[]>(
     getInitialSelectedUsers(projectToEdit)
   );
@@ -220,7 +221,7 @@ export default function CreateProjectModal({
     !formState.title.trim() ||
     !formState.description.trim() ||
     isLoading;
-
+// Lance la soumission du formulaire sans recharger la page Handlesubmit
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -233,14 +234,14 @@ export default function CreateProjectModal({
 
     setError("");
     setIsLoading(true);
-
+// On regroupe les informations du projet payload 
     try {
       const payload = {
         name: formState.title.trim(),
         description: formState.description.trim(),
         contributors: selectedUsers.map((user) => user.email),
       };
-
+// Envoi du projet au backend
       const response =
         isEditMode && projectToEdit
           ? await updateProject(projectToEdit.id, payload)
