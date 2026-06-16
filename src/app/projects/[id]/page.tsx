@@ -11,6 +11,7 @@ import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import CreateTaskAiModal from "@/components/modals/CreateTaskAiModal";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
 import EditTaskModal from "@/components/modals/EditTaskModal";
+import { createTaskComment } from "@/services/projectService";
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -40,6 +41,17 @@ export default function ProjectDetailsPage() {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] =
     useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  // Garde en memoire les taches dont la section commentaires est ouverte.
+  const [expandedCommentTaskIds, setExpandedCommentTaskIds] = useState<string[]>(
+    []
+  );
+  // Garde en memoire les taches dont le formulaire d'ajout est ouvert.
+  const [commentFormTaskIds, setCommentFormTaskIds] = useState<string[]>([]);
+  // Garde le brouillon saisi pour chaque tache.
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [isSubmittingCommentTaskIds, setIsSubmittingCommentTaskIds] = useState<
+    string[]
+  >([]);
   const [taskSearchQuery, setTaskSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const deferredTaskSearchQuery = useDeferredValue(taskSearchQuery);
@@ -95,6 +107,75 @@ export default function ProjectDetailsPage() {
     }
 
     setSelectedTask(task);
+  }
+
+  function handleToggleComments(taskId: string) {
+    setExpandedCommentTaskIds((currentIds) =>
+      currentIds.includes(taskId)
+        ? currentIds.filter((id) => id !== taskId)
+        : [...currentIds, taskId]
+    );
+  }
+
+  function handleCommentDraftChange(taskId: string, value: string) {
+    setCommentDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [taskId]: value,
+    }));
+  }
+
+  function handleToggleCommentForm(taskId: string) {
+    setCommentFormTaskIds((currentIds) =>
+      currentIds.includes(taskId)
+        ? currentIds.filter((id) => id !== taskId)
+        : [...currentIds, taskId]
+    );
+  }
+
+  async function handleAddComment(taskId: string) {
+    const content = commentDrafts[taskId]?.trim();
+
+    if (!content || !profile) {
+      return;
+    }
+
+    setIsSubmittingCommentTaskIds((currentIds) => [...currentIds, taskId]);
+
+    try {
+      const response = await createTaskComment(projectId, taskId, {
+        content,
+      });
+
+      // Ajoute le commentaire renvoye par le backend dans la bonne tache.
+      setTasks((currentTasks) =>
+        currentTasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                comments: [...(task.comments ?? []), response.data],
+              }
+            : task
+        )
+      );
+
+      setCommentDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [taskId]: "",
+      }));
+      setCommentFormTaskIds((currentIds) =>
+        currentIds.filter((id) => id !== taskId)
+      );
+    } catch (error) {
+      setCommentDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [taskId]: content,
+      }));
+      console.error("Erreur lors de l'ajout du commentaire:", error);
+    } finally {
+      setIsSubmittingCommentTaskIds((currentIds) =>
+        currentIds.filter((id) => id !== taskId)
+      );
+    }
   }
 
   return (
@@ -278,6 +359,14 @@ export default function ProjectDetailsPage() {
               filteredTasks.map((task) => {
                 const status = formatStatus(task.status);
                 const assignees = task.assignees ?? [];
+                const comments = task.comments ?? [];
+                const isCommentsExpanded = expandedCommentTaskIds.includes(
+                  task.id
+                );
+                const isCommentFormOpen = commentFormTaskIds.includes(task.id);
+                const isSubmittingComment = isSubmittingCommentTaskIds.includes(
+                  task.id
+                );
 
                 return (
                   <article
@@ -336,11 +425,91 @@ export default function ProjectDetailsPage() {
                     <div className="mt-7 border-t border-[#eceff5] pt-6">
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between text-left text-[16px] text-[#222222]"
+                        onClick={() => handleToggleComments(task.id)}
+                        aria-expanded={isCommentsExpanded}
+                        className="flex w-full items-center justify-between rounded-[10px] px-1 text-left text-[16px] text-[#222222]"
                       >
-                        <span>Commentaires ({task.comments?.length ?? 0})</span>
+                        <span>Commentaires ({comments.length})</span>
                         <ChevronDownIcon />
                       </button>
+
+                      {isCommentsExpanded && (
+                        <div className="mt-5 space-y-4">
+                          {comments.length > 0 ? (
+                            comments.map((comment) => (
+                              <article
+                                key={comment.id}
+                                className="rounded-[12px] bg-[#f8fafc] px-4 py-4"
+                              >
+                                <div className="flex items-center justify-between gap-4">
+                                  <p className="text-[14px] font-medium text-[#222222]">
+                                    {comment.author?.name || comment.author?.email || "Utilisateur"}
+                                  </p>
+                                  <p className="text-[13px] text-[#778196]">
+                                    {comment.createdAt
+                                      ? new Date(comment.createdAt).toLocaleDateString("fr-FR")
+                                      : ""}
+                                  </p>
+                                </div>
+                                <p className="mt-2 text-[14px] leading-7 text-[#5f6b7a]">
+                                  {comment.content}
+                                </p>
+                              </article>
+                            ))
+                          ) : (
+                            <p className="text-[14px] text-[#778196]">
+                              Aucun commentaire pour cette tâche.
+                            </p>
+                          )}
+
+                          <div className="rounded-[12px] bg-[#f8fafc] px-4 py-4">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCommentForm(task.id)}
+                              className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-[#d8deea] bg-white px-5 text-[14px] text-[#222222]"
+                            >
+                              {isCommentFormOpen
+                                ? "Fermer le formulaire"
+                                : "Ajouter un commentaire"}
+                            </button>
+
+                            {isCommentFormOpen && (
+                              <div className="mt-4 space-y-3">
+                                <label
+                                  htmlFor={`task-comment-${task.id}`}
+                                  className="block text-[14px] font-medium text-[#222222]"
+                                >
+                                  Nouveau commentaire
+                                </label>
+                                <textarea
+                                  id={`task-comment-${task.id}`}
+                                  value={commentDrafts[task.id] ?? ""}
+                                  onChange={(event) =>
+                                    handleCommentDraftChange(task.id, event.target.value)
+                                  }
+                                  rows={3}
+                                  placeholder="Écrire un commentaire..."
+                                  className="w-full rounded-[8px] border border-[#d8deea] px-4 py-3 text-[14px] text-[#222222] outline-none transition focus:border-[#d85d0a]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddComment(task.id)}
+                                  disabled={
+                                    !profile ||
+                                    !(commentDrafts[task.id] ?? "").trim() ||
+                                    isSubmittingComment
+                                  }
+                                  className="inline-flex h-[42px] items-center justify-center rounded-[10px] bg-[#262323] px-5 text-[14px] text-white disabled:cursor-not-allowed disabled:bg-[#dfe4ed] disabled:text-[#8b93a4]"
+                                >
+                                  {isSubmittingComment
+                                    ? "Ajout..."
+                                    : "Ajouter le commentaire"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </article>
                 );

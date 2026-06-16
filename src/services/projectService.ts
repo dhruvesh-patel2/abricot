@@ -2,6 +2,7 @@ import { apiRequest } from "@/services/api";
 import { extractEntity } from "@/services/responseParsers";
 import type {
   ApiResponse,
+  Comment,
   Project,
   Task,
 } from "@/types/api";
@@ -31,6 +32,10 @@ export type UpdateTaskPayload = {
   status?: string;
   priority?: string;
   assigneeIds?: string[];
+};
+// Données nécessaires pour créer un commentaire
+export type CreateTaskCommentPayload = {
+  content: string;
 };
 
 // Liste tous les projets accessibles a l'utilisateur connecte.
@@ -110,6 +115,14 @@ function extractTask(data: unknown): Task {
   );
 }
 
+function extractComment(data: unknown): Comment {
+  return extractEntity<Comment>(
+    data,
+    "comment",
+    "Le commentaire cree n'a pas pu etre lu depuis la reponse API."
+  );
+}
+
 export async function updateProjectTask(
   projectId: string,
   taskId: string,
@@ -138,6 +151,26 @@ export function deleteProjectTask(
     method: "DELETE",
     requireAuth: true,
   });
+}
+
+export async function createTaskComment(
+  projectId: string,
+  taskId: string,
+  payload: CreateTaskCommentPayload
+): Promise<ApiResponse<Comment>> {
+  const response = await apiRequest<unknown>(
+    `/projects/${projectId}/tasks/${taskId}/comments`,
+    {
+      method: "POST",
+      body: payload,
+      requireAuth: true,
+    }
+  );
+
+  return {
+    ...response,
+    data: extractComment(response.data),
+  };
 }
 
 export async function createProjectTask(
